@@ -95,24 +95,49 @@ describe("RegisterForm", () => {
     expect(passwordInput).toHaveAttribute("type", "password");
   });
 
-  it("displays server error message on registration failure", async () => {
-    const user = userEvent.setup();
-    const error = Object.assign(new Error("Email already registered"), {
-      response: { data: { message: "Email already registered" } },
-    });
-    registerCustomer.mockRejectedValueOnce(error);
-    renderRegisterForm();
+  it.each([
+    {
+      isAxiosError: true,
+      data: { message: "Email already registered" },
+      expectedMessage: "Email already registered",
+    },
+    {
+      isAxiosError: true,
+      data: { error: { code: 422, message: "Failed to create user" } },
+      expectedMessage: "Failed to create user",
+    },
+    {
+      isAxiosError: false,
+      data: { message: "Email already registered" },
+      expectedMessage: "Email already registered",
+    },
+    {
+      isAxiosError: false,
+      data: { error: { code: 422, message: "Failed to create user" } },
+      expectedMessage: "Failed to create user",
+    },
+  ])(
+    "displays server error message on registration failure: %j",
+    async ({ isAxiosError, data, expectedMessage }) => {
+      const user = userEvent.setup();
+      const error = Object.assign(new Error("Request failed"), {
+        isAxiosError,
+        response: { data },
+      });
+      registerCustomer.mockRejectedValueOnce(error);
+      renderRegisterForm();
 
-    await user.type(screen.getByLabelText(/Họ và tên/i), "Nguyễn An");
-    await user.type(screen.getByLabelText(/Địa chỉ Email/i), "exist@example.com");
-    await user.type(screen.getByLabelText(/Số điện thoại/i), "0901234567");
-    await user.type(screen.getByLabelText(/^Mật khẩu/i), "Customer#123");
-    await user.type(screen.getByLabelText(/Xác nhận lại mật khẩu/i), "Customer#123");
+      await user.type(screen.getByLabelText(/Họ và tên/i), "Nguyễn An");
+      await user.type(screen.getByLabelText(/Địa chỉ Email/i), "exist@example.com");
+      await user.type(screen.getByLabelText(/Số điện thoại/i), "0901234567");
+      await user.type(screen.getByLabelText(/^Mật khẩu/i), "Customer#123");
+      await user.type(screen.getByLabelText(/Xác nhận lại mật khẩu/i), "Customer#123");
 
-    await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.registerButton }));
+      await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.registerButton }));
 
-    expect(await screen.findByText("Email already registered")).toBeInTheDocument();
-  });
+      expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
+    },
+  );
 });
 
 it("does not register when terms are declined", async () => {
@@ -128,4 +153,23 @@ it("does not register when terms are declined", async () => {
   await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.registerButton }));
   expect(await screen.findByRole("alert")).toHaveTextContent(AUTH_MESSAGES.termsRequired);
   expect(registerCustomer).not.toHaveBeenCalled();
+});
+
+it("shows the existing-account message when the server answers 409", async () => {
+  const user = userEvent.setup();
+  registerCustomer.mockReset();
+  registerCustomer.mockRejectedValueOnce(
+    Object.assign(new Error("Request failed with status code 409"), {
+      isAxiosError: true,
+      response: { status: 409, data: { error: { code: 409, message: "Conflict" } } },
+    }),
+  );
+  renderRegisterForm();
+  await user.type(screen.getByLabelText(/Họ và tên/i), "Nguyễn An");
+  await user.type(screen.getByLabelText(/Địa chỉ Email/i), "exist@example.com");
+  await user.type(screen.getByLabelText(/Số điện thoại/i), "0901234567");
+  await user.type(screen.getByLabelText(/^Mật khẩu/i), "Customer#123");
+  await user.type(screen.getByLabelText(/Xác nhận lại mật khẩu/i), "Customer#123");
+  await user.click(screen.getByRole("button", { name: AUTH_MESSAGES.registerButton }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(AUTH_MESSAGES.registrationEmailExists);
 });
