@@ -84,11 +84,16 @@ export class AppointmentsService {
     if (actor.role !== UserRole.FACILITY_STAFF || appointment.assignedStaffId !== actor.id)
       throw new ForbiddenError(m.accessDenied);
     const slot = await this.slots.findByIdForDate(appointment.slotId, appointment.scheduledDate);
+    const now = new Date();
+    const sameDayAllowed =
+      slot &&
+      appointment.appointmentType === Type.CHECK_IN &&
+      this.slots.allowsCheckInDuringSameDaySlot(slot, appointment.scheduledDate, now);
     if (
       !slot ||
       (!isDevelopmentEnvironment() &&
-        (new Date() < slot.startsAt ||
-          new Date() >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)))
+        !sameDayAllowed &&
+        (now < slot.startsAt || now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)))
     )
       throw new ConflictError(m.completionNotReady);
     if (appointment.status !== Status.CONFIRMED && appointment.status !== Status.COMPLETED)
@@ -109,9 +114,15 @@ export class AppointmentsService {
 
   async scheduleAppointment(input: CreateAppointmentInput, customerId: string) {
     input = CreateAppointmentSchema.parse(input);
-    const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
     const slot = await this.slots.findByIdForDate(input.slotId, input.scheduledDate);
-    if (!slot || (!demo && slot.startsAt <= new Date())) throw new BadRequestError(m.invalidSlot);
+    const now = new Date();
+    const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
+    const sameDayAllowed =
+      slot &&
+      input.appointmentType === Type.CHECK_IN &&
+      this.slots.allowsSameDayReservation(slot, input.scheduledDate, now);
+    if (!slot || (!demo && slot.startsAt <= now && !sameDayAllowed))
+      throw new BadRequestError(m.invalidSlot);
     const scheduled = await this.repository.transaction(async (tx) => {
       let facilityId: string;
       if (input.appointmentType === Type.CHECK_IN) {
@@ -296,6 +307,9 @@ export class AppointmentsService {
       const slot = await this.slots.findByIdForDate(appointment.slotId, appointment.scheduledDate);
       if (!slot) throw new BadRequestError(m.invalidSlot);
       const now = new Date();
+      const sameDayAllowed =
+        appointment.appointmentType === Type.CHECK_IN &&
+        this.slots.allowsCheckInDuringSameDaySlot(slot, appointment.scheduledDate, now);
       const status = input.status ?? appointment.status;
       if (status === Status.CANCELLED && actor.role === UserRole.FACILITY_STAFF)
         throw new ForbiddenError(m.accessDenied);
@@ -308,6 +322,7 @@ export class AppointmentsService {
             appointment.assignedStaffId !== actor.id ||
             appointment.status !== Status.CONFIRMED ||
             (!demo &&
+              !sameDayAllowed &&
               (now < slot.startsAt ||
                 now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`))))
         )

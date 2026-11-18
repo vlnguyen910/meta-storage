@@ -255,6 +255,10 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         .from(rentals)
         .where(eq(rentals.bookingId, existing.id));
       if (existing.status !== "CONFIRMED" || rental) {
+        await tx
+          .update(checkInSlots)
+          .set({ sameDayCheckInEnabled: true })
+          .where(eq(checkInSlots.id, SEED_IDS.demoCheckInSlot));
         console.log("DEMO-CHECKIN-NOW already progressed; keeping its booking and slot unchanged.");
         return;
       }
@@ -266,8 +270,12 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         name: "Demo check-in ngay",
         startTime,
         endTime: "23:59:59.999999",
+        sameDayCheckInEnabled: true,
       })
-      .onConflictDoUpdate({ target: checkInSlots.id, set: { startTime } });
+      .onConflictDoUpdate({
+        target: checkInSlots.id,
+        set: { startTime, endTime: "23:59:59.999999", sameDayCheckInEnabled: true },
+      });
     if (!existing) {
       const [source] = await tx
         .select()
@@ -1956,32 +1964,37 @@ async function seed() {
       name: "Ca 1",
       startTime: "09:00:00",
       endTime: "10:30:00",
+      sameDayCheckInEnabled: false,
     },
     {
       id: SEED_IDS.checkInSlots[1],
       name: "Ca 2",
       startTime: "10:30:00",
       endTime: "12:00:00",
+      sameDayCheckInEnabled: false,
     },
     {
       id: SEED_IDS.checkInSlots[2],
       name: "Ca 3",
       startTime: "14:00:00",
       endTime: "15:30:00",
+      sameDayCheckInEnabled: false,
     },
     {
       id: SEED_IDS.checkInSlots[3],
       name: "Ca 4",
       startTime: "15:30:00",
       endTime: "17:00:00",
+      sameDayCheckInEnabled: false,
     },
   ];
   for (const slot of checkInSlotsData) {
     await queryClient`
-      INSERT INTO check_in_slots (id, name, start_time, end_time)
-      VALUES (${slot.id}, ${slot.name}, ${slot.startTime}, ${slot.endTime})
+      INSERT INTO check_in_slots (id, name, start_time, end_time, same_day_check_in_enabled)
+      VALUES (${slot.id}, ${slot.name}, ${slot.startTime}, ${slot.endTime}, ${slot.sameDayCheckInEnabled ?? false})
       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
-        start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time
+        start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time,
+        same_day_check_in_enabled = EXCLUDED.same_day_check_in_enabled
     `;
   }
 

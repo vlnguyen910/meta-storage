@@ -1,0 +1,1 @@
+ALTER TABLE "check_in_slots" ADD COLUMN "same_day_check_in_enabled" boolean DEFAULT false NOT NULL;

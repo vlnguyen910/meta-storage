@@ -908,8 +908,11 @@ The legacy reservation-draft checkout and table are removed.
   references are retired. Booking payment idempotency, provider transaction uniqueness
   and cancellation refund metadata remain.
 
-Check-in slots are shared time-of-day definitions with exactly four required
-columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
+Check-in slots are shared time-of-day definitions with required columns `id`,
+`name`, `start_time`, `end_time`, and `same_day_check_in_enabled` (defaults to
+false). Only the designated demo slot may accept reservations and check-in
+appointments for the current facility-local date, and only until the slot ends.
+Staff may start check-in only during that slot. A Booking stores a required
 `check_in_date` and `check_in_slot_id` instead of start/end timestamps. The
 calendar date is interpreted in the facility timezone (currently Vietnam time).
 Referenced slots cannot be deleted (`ON DELETE RESTRICT`). This change is
