@@ -1784,10 +1784,10 @@ async function seed() {
     "HCM-01": ["UT-1M", "UT-2M", "UT-4M", "UT-6M", "UT-10M", "UT-AC-4M"], // 6 types
     "HCM-02": ["UT-1M", "UT-2M", "UT-4M", "UT-AC-4M", "UT-8M"], // 5 types
     "HCM-03": ["UT-2M", "UT-4M", "UT-6M", "UT-10M", "UT-15M"], // 5 types
-    "HCM-04": ["UT-1M", "UT-3M", "UT-4M", "UT-AC-4M", "UT-6M", "UT-10M"], // 6 types
+    "HCM-04": ["UT-1M", "UT-2M", "UT-4M", "UT-AC-4M", "UT-6M", "UT-10M"], // 6 types
     "HCM-05": ["UT-2M", "UT-4M", "UT-6M", "UT-8M", "UT-AC-4M"], // 5 types
     "HCM-06": ["UT-1M", "UT-2M", "UT-4M", "UT-6M", "UT-15M"], // 5 types
-    "HCM-07": ["UT-2M", "UT-3M", "UT-4M", "UT-6M", "UT-8M", "UT-10M"], // 6 types
+    "HCM-07": ["UT-1M", "UT-2M", "UT-4M", "UT-6M", "UT-8M", "UT-10M"], // 6 types
     "HCM-08": ["UT-1M", "UT-2M", "UT-4M", "UT-AC-4M", "UT-10M"], // 5 types
   };
 
