@@ -479,7 +479,7 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
         </div>
       </TableCell>
 
-      {/* Col 2: Title & Reference */}
+      {/* Col 2: Title & Phone */}
       <TableCell className="py-4 px-4 min-w-[200px] max-w-[320px]">
         <div className="min-w-0">
           <h2 className="text-sm font-bold text-slate-900 break-words">{item.title}</h2>
@@ -493,9 +493,6 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
                 {item.phone}
               </a>
             </p>
-          )}
-          {item.reference && (
-            <p className="mt-0.5 font-mono text-xs text-slate-600 break-words">{item.reference}</p>
           )}
         </div>
       </TableCell>
