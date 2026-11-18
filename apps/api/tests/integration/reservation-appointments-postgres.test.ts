@@ -690,9 +690,10 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     await expect(
       reservationService.listFacilityReservations(randomUUID(), {}, f.id.manager),
     ).rejects.toMatchObject({ statusCode: 403 });
+    const yesterday = localDate(new Date(Date.now() - 86400000), "Asia/Ho_Chi_Minh");
     await expect(
       reservationService.createReservationDraft(
-        { ...f.input, checkInDate: localDate(new Date(), "Asia/Ho_Chi_Minh") },
+        { ...f.input, checkInDate: yesterday },
         f.id.customer,
       ),
     ).rejects.toMatchObject({ statusCode: 400 });
