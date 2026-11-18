@@ -121,7 +121,7 @@ export class AppointmentsService {
       slot &&
       input.appointmentType === Type.CHECK_IN &&
       this.slots.allowsSameDayReservation(slot, input.scheduledDate, now);
-    if (!slot || (!demo && slot.startsAt <= now && !sameDayAllowed))
+    if (!slot || slot.endsAt <= now || (!demo && slot.startsAt <= now && !sameDayAllowed))
       throw new BadRequestError(m.invalidSlot);
     const scheduled = await this.repository.transaction(async (tx) => {
       let facilityId: string;

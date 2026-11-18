@@ -31,11 +31,7 @@ export class CheckInSlotsService {
   }
 
   allowsSameDayReservation(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {
-    return (
-      slot.sameDayCheckInEnabled &&
-      checkInDate === localDate(now, FACILITY_TIME_ZONE) &&
-      now < slot.endsAt
-    );
+    return checkInDate === localDate(now, FACILITY_TIME_ZONE) && now < slot.endsAt;
   }
 
   allowsCheckInDuringSameDaySlot(slot: ResolvedCheckInSlot, checkInDate: string, now = new Date()) {

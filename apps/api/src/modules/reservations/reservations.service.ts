@@ -72,10 +72,10 @@ export class ReservationsService {
     const now = new Date();
     const sameDayAllowed =
       slot && this.slots.allowsSameDayReservation(slot, input.checkInDate, now);
+    if (!slot || slot.endsAt <= now) throw new BadRequestError(m.invalidSlot);
     if (input.checkInDate === today && !demo && !sameDayAllowed)
       throw new BadRequestError(m.futureDateRequired);
-    if (!slot || (!demo && slot.startsAt <= now && !sameDayAllowed))
-      throw new BadRequestError(m.invalidSlot);
+    if (!demo && slot.startsAt <= now && !sameDayAllowed) throw new BadRequestError(m.invalidSlot);
     if (!demo) await this.facilities.assertCheckInWithinOperatingHours(slot.startsAt);
     const rentalEndAt = new Date(slot.startsAt);
     rentalEndAt.setUTCDate(rentalEndAt.getUTCDate() + input.durationMonths * 30);
