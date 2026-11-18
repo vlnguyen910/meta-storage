@@ -51,7 +51,7 @@ export const CreateAppointmentSchema = z
       context.addIssue({
         code: "custom",
         path: ["appointmentType"],
-        message: "Appointment must reference one matching reservation, rental, or support ticket.",
+        message: "Lịch hẹn phải gắn với đúng một đặt kho, kỳ thuê hoặc yêu cầu hỗ trợ tương ứng.",
       });
   });
 export const UpdateAppointmentSchema = z.object({
