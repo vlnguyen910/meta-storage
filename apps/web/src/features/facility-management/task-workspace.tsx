@@ -11,7 +11,6 @@ import { CustomerTable } from "@/components/ui/customer-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { OperationalBadge } from "@/components/ui/operational";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -155,17 +154,20 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
         }}
         pending={query.isFetching}
       />
-      <Sheet open={Boolean(selectedTask)} onOpenChange={(open) => !open && setSelectedTaskId(null)}>
-        <SheetContent className="w-full max-w-xl p-5 sm:p-7">
+      <Dialog
+        open={Boolean(selectedTask)}
+        onOpenChange={(open) => !open && setSelectedTaskId(null)}
+      >
+        <DialogContent className="max-h-[90dvh] overflow-y-auto p-5 sm:max-w-2xl sm:p-7">
           {selectedTask && (
             <>
-              <SheetHeader className="pr-12">
-                <SheetTitle>{M.detailTitle}</SheetTitle>
+              <DialogHeader className="pr-12">
+                <DialogTitle>{M.detailTitle}</DialogTitle>
                 <OperationalBadge
                   value={selectedTask.status}
                   label={M.taskStatuses[selectedTask.status]}
                 />
-              </SheetHeader>
+              </DialogHeader>
               <section className="grid gap-3 rounded-xl border border-line bg-canvas p-4 text-sm sm:grid-cols-2">
                 <DetailValue label={F5.taskType} value={M.taskTypes[selectedTask.type]} />
                 <div className="grid gap-1">
@@ -293,8 +295,8 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
               </section>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader className="pr-10">

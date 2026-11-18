@@ -82,9 +82,7 @@ export function useBooking({
     queryKey: ["customer-check-in-slots"],
     queryFn: () => api.appointments.slots(),
   });
-  const earliestCheckInDate = slots.data?.some(
-    (item) => item.sameDayCheckInEnabled && canSelectCheckInSlot(today, item),
-  )
+  const earliestCheckInDate = slots.data?.some((item) => canSelectCheckInSlot(today, item))
     ? today
     : minDate;
   const unit = types.data?.find((item) => item.id === values.unitTypeId);

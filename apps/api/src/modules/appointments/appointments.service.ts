@@ -117,12 +117,17 @@ export class AppointmentsService {
     const slot = await this.slots.findByIdForDate(input.slotId, input.scheduledDate);
     const now = new Date();
     const demo = isDevelopmentEnvironment() && input.appointmentType === Type.CHECK_IN;
-    const sameDayAllowed =
+    const sameDayReservationAllowed =
       slot &&
       input.appointmentType === Type.CHECK_IN &&
       this.slots.allowsSameDayReservation(slot, input.scheduledDate, now);
-    if (!slot || (!demo && slot.startsAt <= now && !sameDayAllowed))
+    if (
+      !slot ||
+      slot.endsAt <= now ||
+      (!demo && slot.startsAt <= now && !sameDayReservationAllowed)
+    )
       throw new BadRequestError(m.invalidSlot);
+    const sameDayDemoSlotAllowed = Boolean(slot.sameDayCheckInEnabled && sameDayReservationAllowed);
     const scheduled = await this.repository.transaction(async (tx) => {
       let facilityId: string;
       if (input.appointmentType === Type.CHECK_IN) {
@@ -163,7 +168,7 @@ export class AppointmentsService {
       if (input.facilityId && input.facilityId !== facilityId)
         throw new BadRequestError(m.contextMismatch);
       await this.facilities.requireActiveFacility(facilityId);
-      if (!demo && !sameDayAllowed) {
+      if (!demo && !sameDayDemoSlotAllowed) {
         await this.facilities.assertCheckInWithinOperatingHours(
           slot.startsAt,
           new Date(slot.endsAt.getTime() - 1),

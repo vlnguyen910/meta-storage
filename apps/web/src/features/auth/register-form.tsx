@@ -13,13 +13,14 @@ import {
   Mail,
   MailCheck,
   Phone,
+  RotateCcw,
   Shield,
   User,
   UserCheck,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +38,36 @@ export function RegisterForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [resendFeedback, setResendFeedback] = useState<string | null>(null);
+  const [resendFailed, setResendFailed] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((v) => v - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  async function handleResendVerification() {
+    if (!registeredEmail || resendCooldown > 0 || isResending) return;
+    setIsResending(true);
+    setResendFeedback(null);
+    try {
+      await api.auth.resendVerificationEmail(
+        registeredEmail,
+        `${window.location.origin}/verify-email`,
+      );
+      setResendFailed(false);
+      setResendFeedback(AUTH_MESSAGES.verificationResent);
+      setResendCooldown(45);
+    } catch {
+      setResendFailed(true);
+      setResendFeedback(AUTH_MESSAGES.verificationRequestFailed);
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   const {
     register,
@@ -107,13 +138,43 @@ export function RegisterForm() {
               ? MOCK_MESSAGES.registered
               : AUTH_MESSAGES.checkEmailSubtitle(registeredEmail)}
           </p>
-          <Link
-            href={routes.login}
-            className="w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] active:bg-[#0a352b] text-white text-sm font-semibold rounded-lg inline-flex items-center justify-center gap-2 transition-all duration-150 shadow-xs active:scale-[0.99]"
-          >
-            <span>{AUTH_MESSAGES.goToLogin}</span>
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
-          </Link>
+          {resendFeedback && (
+            <p
+              role={resendFailed ? "alert" : "status"}
+              className={`mb-4 text-xs ${resendFailed ? "text-rose-600" : "text-[#165f4d]"}`}
+            >
+              {resendFeedback}
+            </p>
+          )}
+          <div className="flex flex-col gap-3">
+            <Link
+              href={routes.login}
+              className="w-full h-11 bg-[#165f4d] hover:bg-[#0f493b] active:bg-[#0a352b] text-white text-sm font-semibold rounded-lg inline-flex items-center justify-center gap-2 transition-all duration-150 shadow-xs active:scale-[0.99]"
+            >
+              <span>{AUTH_MESSAGES.goToLogin}</span>
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </Link>
+            {!isMockMode && (
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || isResending}
+                onClick={handleResendVerification}
+                className="w-full h-11 border border-[#bfcac4] hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg inline-flex items-center justify-center gap-2 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RotateCcw
+                  className={`w-4 h-4 ${isResending ? "animate-spin" : ""}`}
+                  aria-hidden="true"
+                />
+                <span>
+                  {resendCooldown > 0
+                    ? AUTH_MESSAGES.resendCountdown(resendCooldown)
+                    : isResending
+                      ? AUTH_MESSAGES.resendingEmail
+                      : AUTH_MESSAGES.resendVerifyEmail}
+                </span>
+              </button>
+            )}
+          </div>
         </section>
       </div>
     );

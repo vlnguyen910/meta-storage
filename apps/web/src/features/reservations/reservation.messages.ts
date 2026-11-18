@@ -2,7 +2,7 @@ export const RESERVATION_MESSAGES = {
   facilityRequired: "Chọn một cơ sở",
   unitTypeRequired: "Chọn loại kho",
   checkInRequired: "Chọn thời gian check-in",
-  checkInTomorrow: "Ngày nhận kho phải từ ngày mai (giờ Việt Nam).",
+  checkInTomorrow: "Ngày nhận kho phải từ hôm nay; ca đã kết thúc không thể chọn.",
   nameRequired: "Nhập họ tên",
   invalidEmail: "Email chưa đúng định dạng",
   invalidPhone: "Nhập số điện thoại Việt Nam gồm 10 chữ số, bắt đầu bằng 0 (ví dụ 0901234567).",

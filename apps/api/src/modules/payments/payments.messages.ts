@@ -15,8 +15,7 @@ export const PAYMENT_MESSAGES = {
   bookingCapacityUnavailable: "Loại kho không còn capacity trong kỳ thuê.",
   bookingOfferingUnavailable: "Cơ sở hoặc loại kho không còn khả dụng.",
   bookingScheduleUnavailable: "Lịch nhận kho không còn hợp lệ; hãy tạo booking draft mới.",
-  checkInTomorrow:
-    "Chỉ được bắt đầu thanh toán mới cho ngày nhận kho từ ngày mai theo giờ Việt Nam.",
+  checkInTomorrow: "Lịch nhận kho đã qua hoặc ca hôm nay đã kết thúc.",
   refundNotPending: "Payment không ở trạng thái chờ hoàn tiền thủ công.",
   refundReferenceConflict: "Khoản hoàn tiền đã được xác nhận bằng mã giao dịch khác.",
   checkoutDescription: (paymentCode: string) => `Thanh toan don hang ${paymentCode}`,
