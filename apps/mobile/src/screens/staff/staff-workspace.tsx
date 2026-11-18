@@ -1,6 +1,14 @@
 import { formatReference } from "@metastorage/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, ClipboardCheck, Clock3, DoorOpen, Warehouse } from "lucide-react-native";
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  ClipboardCheck,
+  Clock3,
+  DoorOpen,
+  Headset,
+  Warehouse,
+} from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -330,6 +338,10 @@ function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => v
           year: "numeric",
         }).format(new Date(date))
     : "";
+  const appType = appointment?.appointmentType ?? "CHECK_IN";
+  const isReturn = appType === "CHECK_OUT";
+  const isSupport = appType === "SUPPORT";
+
   const statusTone = done
     ? "green"
     : closed
@@ -352,27 +364,80 @@ function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => v
     : closed
       ? "border-l-outline-variant"
       : booking
-        ? "border-l-warning-line"
+        ? isReturn
+          ? "border-l-purple-600"
+          : isSupport
+            ? "border-l-amber-500"
+            : "border-l-emerald-600"
         : "border-l-info-line";
   const TaskIcon = booking
-    ? DoorOpen
+    ? isReturn
+      ? ArrowLeftRight
+      : isSupport
+        ? Headset
+        : DoorOpen
     : task?.type === "UNIT_INSPECTION"
       ? ClipboardCheck
       : Warehouse;
+
+  const iconContainerClass = done
+    ? "bg-primary-soft"
+    : closed
+      ? "bg-neutral-soft"
+      : booking
+        ? isReturn
+          ? "bg-purple-100"
+          : isSupport
+            ? "bg-amber-100"
+            : "bg-emerald-100"
+        : "bg-primary-soft";
+
+  const iconColor = done
+    ? "#165f4d"
+    : closed
+      ? "#64748b"
+      : booking
+        ? isReturn
+          ? "#7e22ce"
+          : isSupport
+            ? "#b45309"
+            : "#047857"
+        : "#165f4d";
+
+  const typeHeaderLabel = booking
+    ? isReturn
+      ? M.checkOutHandover
+      : isSupport
+        ? M.supportHandover
+        : M.checkInHandover
+    : M.type[task?.type ?? ""];
+
+  const typeHeaderColor = done
+    ? "text-primary"
+    : closed
+      ? "text-muted"
+      : booking
+        ? isReturn
+          ? "text-purple-700"
+          : isSupport
+            ? "text-amber-700"
+            : "text-emerald-700"
+        : "text-primary";
+
   return (
     <View
       className={`mb-3 rounded-xl border border-outline-variant border-l-4 bg-surface p-3.5 shadow-soft ${accent}`}
     >
       <View className="mb-2 flex-row items-center justify-between gap-2">
         <View className="min-w-0 flex-1 flex-row items-center gap-2">
-          <View className="h-8 w-8 items-center justify-center rounded-lg bg-primary-soft">
-            <Icon as={TaskIcon} size={17} className="text-primary" />
+          <View className={`h-8 w-8 items-center justify-center rounded-lg ${iconContainerClass}`}>
+            <Icon as={TaskIcon} size={17} color={iconColor} />
           </View>
           <Text
             numberOfLines={1}
-            className="min-w-0 flex-1 font-body-semibold text-[10px] uppercase tracking-wide text-primary"
+            className={`min-w-0 flex-1 font-body-semibold text-[10px] uppercase tracking-wide ${typeHeaderColor}`}
           >
-            {booking ? M.checkInHandover : M.type[task?.type ?? ""]}
+            {typeHeaderLabel}
           </Text>
         </View>
         <StatusPill label={statusLabel} tone={statusTone} compact />

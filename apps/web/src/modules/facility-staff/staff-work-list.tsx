@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  ArrowLeftRight,
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  ClipboardCheck,
   Clock3,
   DoorOpen,
+  Headset,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -80,14 +83,13 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
     const kind = params.get("kind") ?? saved.kind;
     const group = params.get("group") ?? saved.group;
     const groups: StaffWorkGroup[] =
-      kind === "TASK"
-        ? ["pending", "done"]
-        : kind === "CHECK_IN" || kind === "RETURN"
-          ? ["pending", "done", "closed"]
-          : ["pending", "done", "closed"];
+      kind === "TASK" ? ["pending", "done"] : ["pending", "done", "closed"];
     const date = params.get("date") ?? saved.date ?? "all";
     return {
-      kind: kind === "CHECK_IN" || kind === "RETURN" || kind === "TASK" ? kind : "",
+      kind:
+        kind === "CHECK_IN" || kind === "RETURN" || kind === "SUPPORT" || kind === "TASK"
+          ? kind
+          : "",
       group: groups.includes(group as StaffWorkGroup) ? (group as StaffWorkGroup) : "pending",
       date: date === "all" || /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "all",
       search: typeof saved.search === "string" ? saved.search : "",
@@ -96,11 +98,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
   });
 
   const groups: StaffWorkGroup[] =
-    filters.kind === "TASK"
-      ? ["pending", "done"]
-      : filters.kind === "CHECK_IN" || filters.kind === "RETURN"
-        ? ["pending", "done", "closed"]
-        : ["pending", "done", "closed"];
+    filters.kind === "TASK" ? ["pending", "done"] : ["pending", "done", "closed"];
 
   const work = useStaffWork(facilityId, filters.date, filters.kind);
 
@@ -221,6 +219,58 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
           })}
         </div>
 
+        {/* Quick Kind Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 bg-white px-3.5 py-2.5">
+          <span className="text-xs font-bold text-slate-500 mr-1 select-none">Phân loại:</span>
+          {[
+            { value: "", label: M.allKinds },
+            { value: "CHECK_IN", label: "Lịch nhận kho", dot: "bg-emerald-500" },
+            { value: "RETURN", label: "Lịch trả kho", dot: "bg-purple-500" },
+            { value: "SUPPORT", label: "Lịch hỗ trợ", dot: "bg-amber-500" },
+            { value: "TASK", label: "Việc cơ sở", dot: "bg-sky-500" },
+          ].map((item) => {
+            const active = filters.kind === item.value;
+            const count = work.items.filter((w) => {
+              if (item.value === "") return true;
+              return w.kind === item.value;
+            }).length;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => {
+                  update({
+                    kind: item.value as StaffWorkFilters["kind"],
+                    group:
+                      item.value === "TASK" && filters.group === "closed"
+                        ? "pending"
+                        : filters.group,
+                  });
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
+                  active
+                    ? "bg-primary text-white border-primary shadow-xs"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
+                )}
+              >
+                {item.dot && (
+                  <span className={cn("size-2 rounded-full", active ? "bg-white" : item.dot)} />
+                )}
+                <span>{item.label}</span>
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
+                    active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-600",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Filter Controls Row */}
         <div className="grid gap-3.5 border-b border-slate-100 bg-white p-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filters.kind !== "TASK" && (
@@ -296,6 +346,7 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
                 { value: "", label: M.allKinds },
                 { value: "CHECK_IN", label: M.bookingTasksTitle },
                 { value: "RETURN", label: M.return },
+                { value: "SUPPORT", label: M.support },
                 { value: "TASK", label: M.facilityTasksTitle },
               ]}
               triggerClassName="h-11 min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-sm text-slate-800 focus:bg-white"
@@ -410,7 +461,39 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
 }
 
 function StaffWorkTableRow({ item }: StaffWorkRowProps) {
-  const Icon = item.kind === "CHECK_IN" ? DoorOpen : CalendarDays;
+  const kindConfig = {
+    CHECK_IN: {
+      Icon: DoorOpen,
+      iconContainer: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      defaultLabel: "Lịch nhận kho",
+    },
+    RETURN: {
+      Icon: ArrowLeftRight,
+      iconContainer: "bg-purple-100 text-purple-800 border-purple-200",
+      badgeClass: "bg-purple-50 text-purple-700 border-purple-200",
+      defaultLabel: "Lịch trả kho",
+    },
+    SUPPORT: {
+      Icon: Headset,
+      iconContainer: "bg-amber-100 text-amber-800 border-amber-200",
+      badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+      defaultLabel: "Lịch hỗ trợ",
+    },
+    TASK: {
+      Icon: ClipboardCheck,
+      iconContainer: "bg-sky-100 text-sky-800 border-sky-200",
+      badgeClass: "bg-sky-50 text-sky-700 border-sky-200",
+      defaultLabel: "Việc cơ sở",
+    },
+  }[item.kind] ?? {
+    Icon: CalendarDays,
+    iconContainer: "bg-slate-100 text-slate-800 border-slate-200",
+    badgeClass: "bg-slate-50 text-slate-700 border-slate-200",
+    defaultLabel: item.typeLabel,
+  };
+
+  const Icon = kindConfig.Icon;
   const tone =
     item.group === "done"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -422,11 +505,28 @@ function StaffWorkTableRow({ item }: StaffWorkRowProps) {
     <TableRow role="listitem" className="hover:bg-slate-50/80 transition-colors">
       {/* Col 1: Work Type */}
       <TableCell className="py-4 px-4">
-        <div className="flex items-center gap-2">
-          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-lg border",
+              kindConfig.iconContainer,
+            )}
+          >
             <Icon size={18} aria-hidden="true" />
           </span>
-          <span className="text-sm font-semibold text-slate-700">{item.typeLabel}</span>
+          <div className="flex flex-col gap-0.5">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold w-fit",
+                kindConfig.badgeClass,
+              )}
+            >
+              {kindConfig.defaultLabel}
+            </span>
+            {item.typeLabel && item.typeLabel !== kindConfig.defaultLabel && (
+              <span className="text-xs text-slate-500 font-medium">{item.typeLabel}</span>
+            )}
+          </div>
         </div>
       </TableCell>
 

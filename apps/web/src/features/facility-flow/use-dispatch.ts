@@ -67,7 +67,10 @@ export async function loadAppointmentItem(id: string) {
   return appointmentItem(await api.appointments.get(id));
 }
 export function readiness(b: DispatchItem): string {
-  if (b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT)
+  if (
+    b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT ||
+    b.appointmentType === APPOINTMENT_TYPES.SUPPORT
+  )
     return b.appointmentStatus === "COMPLETED" ? "COMPLETED" : b.appointmentStatus;
   if (b.status === "CHECKED_IN") return "CHECKED_IN";
   if (b.status === "CANCELLED") return "CANCELLED";
@@ -106,13 +109,15 @@ export function useDispatch(
           (item) =>
             appointmentType !== "ALL" ||
             item.appointmentType === APPOINTMENT_TYPES.CHECK_IN ||
-            item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
+            item.appointmentType === APPOINTMENT_TYPES.CHECK_OUT ||
+            item.appointmentType === APPOINTMENT_TYPES.SUPPORT,
         )
         .map(appointmentItem);
     },
     enabled: !!facilityId,
     refetchInterval: 30000,
   });
+  const [typeFilter, setTypeFilter] = useState<"ALL" | APPOINTMENT_TYPES>("ALL");
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const bookings = [...(query.data ?? [])].sort(
@@ -120,6 +125,7 @@ export function useDispatch(
   );
   const filtered = bookings.filter(
     (b) =>
+      (typeFilter === "ALL" || b.appointmentType === typeFilter) &&
       (filter === "ALL" || readiness(b) === filter) &&
       [
         b.bookingCode,
@@ -129,6 +135,23 @@ export function useDispatch(
         b.assignedUnit?.physicalUnitCode ?? "",
       ].some((v) => v.toLowerCase().includes(search.trim().toLowerCase())),
   );
-  const count = (status: string) => bookings.filter((b) => readiness(b) === status).length;
-  return { query, bookings, filtered, filter, setFilter, search, setSearch, count };
+  const count = (status: string) =>
+    bookings.filter(
+      (b) => (typeFilter === "ALL" || b.appointmentType === typeFilter) && readiness(b) === status,
+    ).length;
+  const typeCount = (type: "ALL" | APPOINTMENT_TYPES) =>
+    type === "ALL" ? bookings.length : bookings.filter((b) => b.appointmentType === type).length;
+  return {
+    query,
+    bookings,
+    filtered,
+    filter,
+    setFilter,
+    typeFilter,
+    setTypeFilter,
+    search,
+    setSearch,
+    count,
+    typeCount,
+  };
 }

@@ -11,7 +11,7 @@ export type StaffSelection =
 export type StaffWorkGroup = "pending" | "done" | "closed";
 export interface StaffWorkFilters {
   group: StaffWorkGroup;
-  kind: "all" | "return" | StaffSelection["kind"];
+  kind: "all" | "check_in" | "return" | "support" | "task" | "appointment";
   search: string;
   date: string;
 }

@@ -3,7 +3,16 @@ import { APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Phone, RefreshCw, Search, Warehouse } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  DoorOpen,
+  Headset,
+  Phone,
+  RefreshCw,
+  Search,
+  Warehouse,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +32,7 @@ import {
 import type { DispatchAppointmentType, DispatchItem } from "@/features/facility-flow/use-dispatch";
 import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { formatBookingAmount, formatBookingDateTime as formatDateTime } from "./booking-display";
 import { BookingFilterChips } from "./booking-filter-chips";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
@@ -81,7 +91,7 @@ export function FacilityBookingsView({
   });
   // Reset pagination whenever the user changes a filter or search term.
   // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
-  useEffect(() => setPage(1), [filter, search]);
+  useEffect(() => setPage(1), [filter, search, d.typeFilter]);
   useEffect(() => setPage((value) => Math.min(value, pageCount)), [pageCount]);
   return (
     <>
@@ -148,6 +158,53 @@ export function FacilityBookingsView({
             )}
           </div>
         </div>
+
+        {/* Appointment Type Quick Filter Tabs */}
+        {showingAll && (
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 pb-3">
+            <span className="text-xs font-bold text-slate-500 mr-1 select-none">
+              Loại lịch hẹn:
+            </span>
+            {[
+              { id: "ALL", label: "Tất cả lịch hẹn" },
+              { id: APPOINTMENT_TYPES.CHECK_IN, label: "Lịch nhận kho", dot: "bg-emerald-500" },
+              { id: APPOINTMENT_TYPES.CHECK_OUT, label: "Lịch trả kho", dot: "bg-purple-500" },
+              { id: APPOINTMENT_TYPES.SUPPORT, label: "Lịch hỗ trợ", dot: "bg-amber-500" },
+            ].map((typeItem) => {
+              const active = d.typeFilter === typeItem.id;
+              const count = d.typeCount(typeItem.id as "ALL" | APPOINTMENT_TYPES);
+              return (
+                <button
+                  key={typeItem.id}
+                  type="button"
+                  onClick={() => d.setTypeFilter(typeItem.id as "ALL" | APPOINTMENT_TYPES)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
+                    active
+                      ? "bg-primary text-white border-primary shadow-xs"
+                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
+                  )}
+                >
+                  {typeItem.dot && (
+                    <span
+                      className={cn("size-2 rounded-full", active ? "bg-white" : typeItem.dot)}
+                    />
+                  )}
+                  <span>{typeItem.label}</span>
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
+                      active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-600",
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <BookingFilterChips
           ids={
             showingAll
@@ -258,6 +315,22 @@ export function FacilityBookingsView({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <strong className="text-xs text-[#003b2f]">{b.bookingCode}</strong>
+                      {b.appointmentType === "CHECK_IN" ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                          <DoorOpen size={12} aria-hidden="true" />
+                          <span>Lịch nhận kho</span>
+                        </span>
+                      ) : b.appointmentType === "CHECK_OUT" ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700">
+                          <ArrowLeftRight size={12} aria-hidden="true" />
+                          <span>Lịch trả kho</span>
+                        </span>
+                      ) : b.appointmentType === "SUPPORT" ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
+                          <Headset size={12} aria-hidden="true" />
+                          <span>Lịch hỗ trợ</span>
+                        </span>
+                      ) : null}
                       <Pill
                         tone={
                           ["NO_SHOW", "CANCELLED"].includes(state)
@@ -423,7 +496,9 @@ export function FacilityBookingsView({
                   value={
                     details.appointmentType === APPOINTMENT_TYPES.CHECK_OUT
                       ? FLOW.checkOutAppointments
-                      : FLOW.checkInAppointments
+                      : details.appointmentType === APPOINTMENT_TYPES.SUPPORT
+                        ? "Hỗ trợ khách hàng"
+                        : FLOW.checkInAppointments
                   }
                 />
                 <DetailValue label={MB.customer} value={details.contactName} />

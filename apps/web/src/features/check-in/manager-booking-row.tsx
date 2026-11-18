@@ -1,5 +1,16 @@
 "use client";
-import { ArrowRight, CalendarClock, Check, Copy, Phone, UserRound, Warehouse } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Copy,
+  DoorOpen,
+  Headset,
+  Phone,
+  UserRound,
+  Warehouse,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
@@ -24,11 +35,13 @@ export function ManagerBookingRow({
 }: ManagerBookingRowProps) {
   const [copyFeedback, setCopyFeedback] = useState("");
   const returnFlow = b.appointmentType === "CHECK_OUT";
+  const supportFlow = b.appointmentType === "SUPPORT";
+  const checkInFlow = b.appointmentType === "CHECK_IN" || !b.appointmentType;
   const url =
     returnFlow && b.rentalId
       ? `/facility-manager/rentals?rentalId=${encodeURIComponent(b.rentalId)}`
       : `/facility-manager/check-in?appointmentId=${encodeURIComponent(b.id)}`;
-  const canReassign = canAssign && Boolean(b.assignedUnit) && !returnFlow;
+  const canReassign = canAssign && Boolean(b.assignedUnit) && !returnFlow && !supportFlow;
   const reassignHint = returnFlow
     ? M.returnUnitUnavailable
     : !canAssign
@@ -62,8 +75,23 @@ export function ManagerBookingRow({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-4 py-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
           <h2 className="text-sm font-bold text-ink">{b.contactName}</h2>
+          {checkInFlow && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
+              <DoorOpen size={12} aria-hidden="true" />
+              <span>{M.checkInAppointment ?? "Lịch nhận kho"}</span>
+            </span>
+          )}
           {returnFlow && (
-            <span className="text-xs font-medium text-slate-600">{M.returnAppointment}</span>
+            <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700">
+              <ArrowLeftRight size={12} aria-hidden="true" />
+              <span>{M.returnAppointment ?? "Lịch trả kho"}</span>
+            </span>
+          )}
+          {supportFlow && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
+              <Headset size={12} aria-hidden="true" />
+              <span>Lịch hỗ trợ</span>
+            </span>
           )}
           <span className="inline-flex items-center gap-1 rounded-md border border-line bg-slate-50 pl-2">
             <span className="select-all font-mono text-xs font-semibold tracking-wider text-slate-700">
