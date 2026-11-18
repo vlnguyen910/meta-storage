@@ -10,6 +10,8 @@ import { localDate } from "../../common/date";
 import { AppError, ConflictError, NotFoundError } from "../../common/errors/app-error";
 import { isDevelopmentEnvironment } from "../../config/env";
 import { AppointmentsRepository } from "../appointments/appointments.repository";
+import { CheckInSlotsRepository } from "../appointments/check-in-slots.repository";
+import { CheckInSlotsService } from "../appointments/check-in-slots.service";
 import { recordLifecycleEvent } from "../notifications/lifecycle-notifications.repository";
 import {
   ReservationsRepository,
@@ -68,11 +70,15 @@ export class ReservationPaymentsService {
       }
       if (await this.repository.findOpenPayment(tx, reservation.id))
         throw new ConflictError(m.paymentPendingReconciliation);
-      if (
-        !isDevelopmentEnvironment() &&
-        localDate(reservation.rentalStartAt, "Asia/Ho_Chi_Minh") <=
-          localDate(new Date(), "Asia/Ho_Chi_Minh")
-      )
+      const now = new Date();
+      const checkInDate = localDate(reservation.rentalStartAt, "Asia/Ho_Chi_Minh");
+      const today = localDate(now, "Asia/Ho_Chi_Minh");
+      const development = isDevelopmentEnvironment();
+      const sameDayAllowed =
+        !development && checkInDate === today
+          ? await this.allowsSameDayCheckIn(tx, reservation.rentalStartAt, now)
+          : false;
+      if (!development && checkInDate <= today && !sameDayAllowed)
         throw new ConflictError(m.checkInTomorrow);
       const offering = await this.repository.lockOffering(
         tx,
@@ -146,6 +152,11 @@ export class ReservationPaymentsService {
     );
   }
 
+  private allowsSameDayCheckIn(tx: ReservationTransaction, checkInAt: Date, now: Date) {
+    const slots = new CheckInSlotsService(new CheckInSlotsRepository(tx));
+    return slots.allowsSameDayReservationForStartAt(checkInAt, now);
+  }
+
   async processEvent(event: VerifiedPaymentEvent) {
     const candidate = await this.repository.findByCode(event.paymentCode);
     if (!candidate?.reservationId || candidate.provider !== "sepay") return null;
@@ -165,6 +176,13 @@ export class ReservationPaymentsService {
         return { duplicate: false, processed: false, paymentId: payment.id };
       if (!(await this.events.recordEventInTransaction(tx, event, payment.id)))
         return { duplicate: true, processed: false, paymentId: payment.id };
+      const now = new Date();
+      const checkInDate = localDate(reservation.rentalStartAt, "Asia/Ho_Chi_Minh");
+      const today = localDate(now, "Asia/Ho_Chi_Minh");
+      const sameDayAllowed =
+        !isDevelopmentEnvironment() && checkInDate === today && reservation.rentalStartAt <= now
+          ? await this.allowsSameDayCheckIn(tx, reservation.rentalStartAt, now)
+          : false;
       const offering = await this.repository.lockOffering(
         tx,
         reservation.facilityId,
@@ -174,8 +192,8 @@ export class ReservationPaymentsService {
       let reason: PaymentRefundReason | null = null;
       if (reservation.status !== ReservationStatus.DRAFT) reason = "CUSTOMER_CANCELLATION";
       else if (
-        reservation.rentalEndAt <= new Date() ||
-        (!isDevelopmentEnvironment() && reservation.rentalStartAt <= new Date())
+        reservation.rentalEndAt <= now ||
+        (!isDevelopmentEnvironment() && reservation.rentalStartAt <= now && !sameDayAllowed)
       )
         reason = "CHECK_IN_CLOSED";
       else if (!offering?.active || !offering.facilityActive) reason = "OFFERING_UNAVAILABLE";
