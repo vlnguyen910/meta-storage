@@ -1,4 +1,4 @@
-type StaffWorkKind = "CHECK_IN" | "RETURN" | "TASK";
+type StaffWorkKind = "CHECK_IN" | "RETURN" | "SUPPORT" | "TASK";
 export type StaffWorkGroup = "pending" | "done" | "closed";
 export interface StaffWorkItem {
   id: string;
@@ -13,7 +13,7 @@ export interface StaffWorkItem {
   action: string;
 }
 export interface StaffWorkFilters {
-  kind: "" | "CHECK_IN" | "RETURN" | "TASK";
+  kind: "" | "CHECK_IN" | "RETURN" | "SUPPORT" | "TASK";
   date: string;
   group: StaffWorkGroup;
   search: string;

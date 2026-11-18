@@ -12,16 +12,21 @@ export function staffWorkDate(value: string) {
   }).format(new Date(value));
 }
 export function facilityWork(t: FacilityTaskDetail): StaffWorkItem {
+  const typeLabel =
+    t.type === "UNIT_INSPECTION" && t.referenceType === "APPOINTMENT"
+      ? M.inspectReturn
+      : {
+          CHECK_IN_HANDOVER: M.checkIn,
+          RETURN_INSPECTION: M.inspectReturn,
+          UNIT_INSPECTION: M.inspect,
+          HANDLE_SUPPORT: M.report,
+        }[t.type];
   return {
     id: `task:${t.id}`,
     kind: "TASK",
     group: t.status === "COMPLETED" ? "done" : t.status === "CANCELLED" ? "closed" : "pending",
     title: t.description || M.inspect,
-    typeLabel: {
-      CHECK_IN_HANDOVER: M.checkIn,
-      UNIT_INSPECTION: M.inspect,
-      HANDLE_SUPPORT: M.report,
-    }[t.type],
+    typeLabel,
     statusLabel: {
       ASSIGNED: M.assigned,
       IN_PROGRESS: M.inProgress,

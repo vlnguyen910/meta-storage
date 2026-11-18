@@ -4,6 +4,9 @@ export const REPORTING_MESSAGES = {
   otherRefund: "Hoàn tiền",
   reservationId: "Mã reservation",
   refundSearch: "Tìm mã thanh toán, mã reservation hoặc booking…",
+  searchCurrentPagePrefix: "Đang lọc theo:",
+  searchCurrentPageCount: (count: number) => ` (${count} kết quả trên trang hiện tại)`,
+  clearSearch: "Xóa tìm kiếm",
   refundTimeUnknown: "Chưa có thời điểm thanh toán",
   refundWaitingDescription: "Hàng chờ khoản hoàn cần xác nhận đối soát.",
   facilityRevenueHeadings: [

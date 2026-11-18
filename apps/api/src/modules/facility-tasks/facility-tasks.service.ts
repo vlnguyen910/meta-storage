@@ -72,7 +72,7 @@ export class FacilityTasksService {
         appointment.appointmentType === "CHECK_IN"
           ? FacilityTaskType.CHECK_IN_HANDOVER
           : appointment.appointmentType === "CHECK_OUT"
-            ? FacilityTaskType.UNIT_INSPECTION
+            ? FacilityTaskType.RETURN_INSPECTION
             : FacilityTaskType.HANDLE_SUPPORT,
       referenceType: FacilityTaskReferenceType.APPOINTMENT,
       referenceId: appointment.id,
@@ -197,6 +197,13 @@ export class FacilityTasksService {
         : undefined;
     if (current?.referenceType === FacilityTaskReferenceType.BOOKING)
       throw new ConflictError(m.appointmentWorkflowRequired);
+    if (
+      "status" in input &&
+      input.status === FacilityTaskStatus.COMPLETED &&
+      current?.type === FacilityTaskType.UNIT_INSPECTION &&
+      current.referenceType === FacilityTaskReferenceType.STORAGE_UNIT
+    )
+      throw new ConflictError(m.inspectionResultRequired);
     if (current?.referenceType === FacilityTaskReferenceType.APPOINTMENT) {
       // Appointment owns assignment and terminal states so both records commit together.
       if (!("status" in input) || input.status !== FacilityTaskStatus.IN_PROGRESS)

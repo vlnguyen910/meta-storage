@@ -20,6 +20,7 @@ import {
   rentals,
   reservations,
   storageUnits,
+  supportTickets,
   systemSettings,
   unitTypes,
   users,
@@ -48,7 +49,8 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     unitTypeId = randomUUID(),
     unitId = randomUUID(),
     bookingId = randomUUID(),
-    slotId = randomUUID();
+    slotId = randomUUID(),
+    supportTicketId = randomUUID();
   const email = `inspection-${suffix}@example.test`,
     outsiderEmail = `outside-${suffix}@example.test`,
     managerEmail = `manager-${suffix}@example.test`,
@@ -207,6 +209,17 @@ export async function createInspectionFixture(allowExistingLocal = false) {
       status: "SUCCEEDED",
       paidAt: new Date(now - 86400_000),
     });
+    await tx.insert(supportTickets).values({
+      id: supportTicketId,
+      reservationId: bookingId,
+      ownerUserId: customerId,
+      facilityId,
+      category: "PAYMENT",
+      subject: `Support test ${suffix}`,
+      description: `Support test description ${suffix}`,
+      actionDueAt: new Date(now + 86400_000),
+      idempotencyKey: `ticket-${suffix}`,
+    });
   });
   return {
     customerId,
@@ -219,6 +232,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
     bookingId,
     bookingCode: `BK-TEST-${suffix.toUpperCase()}`,
     unitId,
+    supportTicketId,
     email,
     outsiderEmail,
     password,
@@ -250,6 +264,7 @@ export async function createInspectionFixture(allowExistingLocal = false) {
             );
           await tx.delete(inspections).where(inArray(inspections.id, inspectionIds));
         }
+        await tx.delete(supportTickets).where(eq(supportTickets.facilityId, facilityId));
         await tx.delete(notificationOutbox).where(eq(notificationOutbox.reservationId, bookingId));
         await tx.delete(appointments).where(eq(appointments.reservationId, bookingId));
         await tx.delete(rentals).where(eq(rentals.reservationId, bookingId));

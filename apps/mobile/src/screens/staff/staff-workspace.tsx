@@ -1,6 +1,14 @@
 import { formatReference } from "@metastorage/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, ClipboardCheck, Clock3, DoorOpen, Warehouse } from "lucide-react-native";
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  ClipboardCheck,
+  Clock3,
+  DoorOpen,
+  Headset,
+  Warehouse,
+} from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +41,8 @@ import {
 } from "../../features/staff-api/use-staff-workspace";
 import { NotificationScreen } from "../notifications/notification-screen";
 import { StaffCheckInView } from "./staff-check-in-view";
+import { StaffReturnView } from "./staff-return-view";
+import { StaffUnitInspectionView } from "./staff-unit-inspection-view";
 import { StaffStatusTabs, StaffWorkFiltersBar } from "./staff-work-filters";
 import { StaffWorkspaceHeader } from "./staff-workspace-header";
 
@@ -155,13 +165,23 @@ export function StaffWorkspace({ owner, name, onHome, onLogout }: StaffWorkspace
               <NotificationScreen owner={owner} />
             ) : selection ? (
               selection.kind === "appointment" ? (
-                <StaffCheckInView
-                  key={selection.appointment.id}
-                  owner={owner}
-                  appointment={selection.appointment}
-                  onBack={() => setSelection(null)}
-                  onNotify={notify}
-                />
+                selection.appointment.appointmentType === "CHECK_OUT" ? (
+                  <StaffReturnView
+                    key={selection.appointment.id}
+                    owner={owner}
+                    appointment={selection.appointment}
+                    onBack={() => setSelection(null)}
+                    onNotify={notify}
+                  />
+                ) : (
+                  <StaffCheckInView
+                    key={selection.appointment.id}
+                    owner={owner}
+                    appointment={selection.appointment}
+                    onBack={() => setSelection(null)}
+                    onNotify={notify}
+                  />
+                )
               ) : (
                 <StaffTaskView
                   key={selection.task.id}
@@ -273,16 +293,20 @@ export function StaffWorkspace({ owner, name, onHome, onLogout }: StaffWorkspace
 }
 function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => void }) {
   const appointment = item.kind === "appointment" ? item.appointment : null;
+  const appType = appointment?.appointmentType ?? "CHECK_IN";
+  const isReturn = appType === "CHECK_OUT";
+  const isSupport = appType === "SUPPORT";
   const booking = appointment
     ? {
         status: appointment.status,
         contactName: appointment.customerName,
         bookingCode: formatReference(
-          appointment.reservationId ?? appointment.id,
-          appointment.reservationId ? "BK" : "LH",
+          appointment.reservationId ?? appointment.rentalId ?? appointment.id,
+          appointment.reservationId ? "BK" : appointment.rentalId ? "KT" : "LH",
         ),
         assignedUnit: appointment.assignedUnit,
         handoverStage: appointment.handoverStage,
+        rentalId: appointment.rentalId,
         slotStart: appointment.slotStart,
         slotEnd: appointment.slotEnd,
       }
@@ -296,17 +320,28 @@ function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => v
     done || closed
       ? M.view
       : booking
-        ? booking.handoverStage === "READY_HANDOVER"
-          ? M.continueHandover
-          : booking.handoverStage === "INSPECTING"
-            ? M.continueInspection
-            : M.checkIn
+        ? isReturn
+          ? booking.status === "CONFIRMED"
+            ? M.inspectReturn
+            : M.returnAwaitingManager
+          : booking.handoverStage === "READY_HANDOVER"
+            ? M.continueHandover
+            : booking.handoverStage === "INSPECTING"
+              ? M.continueInspection
+              : M.checkIn
         : task?.status === "IN_PROGRESS"
           ? M.continueTask
           : M.open;
   const scheduledAt = staffWorkScheduledAt(item);
-  const statusLabel =
-    booking?.status === "CONFIRMED" && booking.handoverStage === "INSPECTING"
+  const statusLabel = isReturn
+    ? status === "CONFIRMED"
+      ? M.returnConfirmed
+      : status === "COMPLETED"
+        ? M.returnDone
+        : status === "SCHEDULED"
+          ? M.returnAwaitingManager
+          : (M.status[status] ?? status)
+    : booking?.status === "CONFIRMED" && booking.handoverStage === "INSPECTING"
       ? M.status.INSPECTING
       : booking?.status === "CONFIRMED" && booking.handoverStage === "READY_HANDOVER"
         ? M.readyHandover
@@ -352,27 +387,80 @@ function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => v
     : closed
       ? "border-l-outline-variant"
       : booking
-        ? "border-l-warning-line"
+        ? isReturn
+          ? "border-l-purple-600"
+          : isSupport
+            ? "border-l-amber-500"
+            : "border-l-emerald-600"
         : "border-l-info-line";
   const TaskIcon = booking
-    ? DoorOpen
+    ? isReturn
+      ? ArrowLeftRight
+      : isSupport
+        ? Headset
+        : DoorOpen
     : task?.type === "UNIT_INSPECTION"
       ? ClipboardCheck
       : Warehouse;
+
+  const iconContainerClass = done
+    ? "bg-primary-soft"
+    : closed
+      ? "bg-neutral-soft"
+      : booking
+        ? isReturn
+          ? "bg-purple-100"
+          : isSupport
+            ? "bg-amber-100"
+            : "bg-emerald-100"
+        : "bg-primary-soft";
+
+  const iconColor = done
+    ? "#165f4d"
+    : closed
+      ? "#64748b"
+      : booking
+        ? isReturn
+          ? "#7e22ce"
+          : isSupport
+            ? "#b45309"
+            : "#047857"
+        : "#165f4d";
+
+  const typeHeaderLabel = booking
+    ? isReturn
+      ? M.checkOutHandover
+      : isSupport
+        ? M.supportHandover
+        : M.checkInHandover
+    : M.type[task?.type ?? ""];
+
+  const typeHeaderColor = done
+    ? "text-primary"
+    : closed
+      ? "text-muted"
+      : booking
+        ? isReturn
+          ? "text-purple-700"
+          : isSupport
+            ? "text-amber-700"
+            : "text-emerald-700"
+        : "text-primary";
+
   return (
     <View
-      className={`mb-3 rounded-xl border border-outline-variant border-l-4 bg-surface p-3.5 shadow-soft ${accent}`}
+      className={`mb-3 rounded-xl border border-outline-variant border-l-2 bg-surface p-3.5 shadow-soft ${accent}`}
     >
       <View className="mb-2 flex-row items-center justify-between gap-2">
         <View className="min-w-0 flex-1 flex-row items-center gap-2">
-          <View className="h-8 w-8 items-center justify-center rounded-lg bg-primary-soft">
-            <Icon as={TaskIcon} size={17} className="text-primary" />
+          <View className={`h-8 w-8 items-center justify-center rounded-lg ${iconContainerClass}`}>
+            <Icon as={TaskIcon} size={17} color={iconColor} />
           </View>
           <Text
             numberOfLines={1}
-            className="min-w-0 flex-1 font-body-semibold text-[10px] uppercase tracking-wide text-primary"
+            className={`min-w-0 flex-1 font-body-semibold text-[10px] uppercase tracking-wide ${typeHeaderColor}`}
           >
-            {booking ? M.checkInHandover : M.type[task?.type ?? ""]}
+            {typeHeaderLabel}
           </Text>
         </View>
         <StatusPill label={statusLabel} tone={statusTone} compact />
@@ -383,11 +471,15 @@ function StaffWorkCard({ item, onOpen }: { item: StaffSelection; onOpen: () => v
       <View className="mt-2 flex-row rounded-lg bg-customer-canvas p-2.5">
         <View className="min-w-0 flex-1 pr-2">
           <Text className="mb-0.5 font-body text-[10px] leading-4 text-muted">
-            {booking ? M.locationBooking : M.taskDetails}
+            {booking ? (isReturn ? M.returnUnitCode : M.locationBooking) : M.taskDetails}
           </Text>
           <Text numberOfLines={1} className="font-body-semibold text-[12px] leading-5 text-ink">
             {booking?.assignedUnit?.physicalUnitCode ??
-              (booking ? M.noUnit : M.type[task?.type ?? ""])}
+              (isReturn && booking?.rentalId
+                ? formatReference(booking.rentalId, "KT")
+                : booking
+                  ? M.noUnit
+                  : M.type[task?.type ?? ""])}
           </Text>
           <Text numberOfLines={1} className="font-body text-[10px] leading-4 text-muted">
             {booking?.bookingCode ?? task?.assignerName ?? ""}
@@ -444,6 +536,8 @@ function StaffTaskView({
   if (query.isPending) return <ActivityIndicator accessibilityLabel={M.loading} />;
   if (query.isError || !task || task.assignedStaffId !== owner)
     return <Notice error>{M.error}</Notice>;
+  if (task.type === "UNIT_INSPECTION" && task.referenceType === "STORAGE_UNIT")
+    return <StaffUnitInspectionView owner={owner} task={task} onNotify={onNotify} />;
   return (
     <>
       <Heading>{M.type[task.type] ?? M.tasks}</Heading>

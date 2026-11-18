@@ -6,6 +6,7 @@ export const STAFF_ASSIGNMENT_MESSAGES = {
   loadError: "Không thể tải danh sách nhân viên cơ sở.",
   empty: "Chưa có nhân viên đang hoạt động được phân công tại cơ sở này.",
   staff: "nhân viên",
+  assignedLabel: "Đang phụ trách",
   taskCount: (count: number) =>
     count === 0 ? "Sẵn sàng (0 việc)" : `Đang phụ trách: ${count} việc`,
   cancel: "Hủy",

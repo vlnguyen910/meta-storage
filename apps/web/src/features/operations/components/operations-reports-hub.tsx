@@ -129,6 +129,33 @@ export function OperationsReportsHub() {
   );
 }
 
+function ActiveSearchChip({
+  query,
+  count,
+  onReset,
+}: {
+  query: string;
+  count: number;
+  onReset: () => void;
+}) {
+  if (!query) return null;
+  return (
+    <div className="flex items-center gap-2 px-1 text-xs text-slate-600">
+      <span>
+        {R.searchCurrentPagePrefix} <strong className="text-slate-900">"{query}"</strong>
+        {R.searchCurrentPageCount(count)}
+      </span>
+      <button
+        type="button"
+        onClick={onReset}
+        className="text-primary hover:underline font-semibold text-xs cursor-pointer ml-1"
+      >
+        {R.clearSearch}
+      </button>
+    </div>
+  );
+}
+
 function RentalsTab() {
   const [facilityId, setFacilityId] = useState("all");
   const [unitTypeId, setUnitTypeId] = useState("all");
@@ -378,6 +405,7 @@ function RentalsTab() {
       )}
 
       {/* Table Section */}
+      <ActiveSearchChip query={searchQuery} count={items.length} onReset={handleResetSearch} />
       <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
         {isPending ? (
           <LoadingState label={M.loading} variant="table" />
@@ -599,6 +627,7 @@ function ReconciliationTab() {
       </section>
 
       {/* Table Section */}
+      <ActiveSearchChip query={searchQuery} count={items.length} onReset={handleResetSearch} />
       <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
         {isPending ? (
           <LoadingState label={M.loading} variant="table" />
@@ -858,6 +887,11 @@ function RefundsQueueTab() {
       )}
 
       {/* Table Section */}
+      <ActiveSearchChip
+        query={searchQuery}
+        count={filteredRefunds.length}
+        onReset={handleResetSearch}
+      />
       <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200/90 bg-white shadow-xs">
         {isPending ? (
           <LoadingState label={M.loading} variant="table" />

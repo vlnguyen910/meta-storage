@@ -2,7 +2,16 @@
 
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, CheckCircle2, Phone, RefreshCw, Search, Warehouse } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Phone,
+  RefreshCw,
+  Search,
+  UserCheck,
+  UserPlus,
+  Warehouse,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +28,7 @@ import {
   useBooking,
   useEligibleUnits,
 } from "@/features/check-in/hooks";
+import { StaffAssignmentModal } from "@/features/check-in/staff-assignment-modal";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FLOW } from "./flow.messages";
@@ -41,6 +51,7 @@ export function AssignmentScreen() {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState<UnitAssignmentConfirmation | null>(null);
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
 
   const { showToast } = useToast();
   const role = useAuthStore((s) => s.session?.user.role);
@@ -162,12 +173,33 @@ export function AssignmentScreen() {
                 <span className="text-xs text-slate-500">{booking.data.facilityName}</span>
               </div>
 
-              {booking.data.assignedUnit?.physicalUnitCode && (
-                <div className="flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900">
-                  <Warehouse size={13} className="text-blue-600" />
-                  <span>Ô kho hiện tại: {booking.data.assignedUnit.physicalUnitCode}</span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {booking.data.assignedUnit?.physicalUnitCode && (
+                  <div className="flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900">
+                    <Warehouse size={13} className="text-blue-600" />
+                    <span>
+                      {FLOW.reassignFrom}: {booking.data.assignedUnit.physicalUnitCode}
+                    </span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setStaffModalOpen(true)}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer"
+                >
+                  {booking.data.assignedStaff ? (
+                    <>
+                      <UserCheck size={13} className="text-blue-600" />
+                      <span>Staff: {booking.data.assignedStaff.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={13} className="text-amber-600" />
+                      <span>{FLOW.assignStaff}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </CardHeader>
 
             <CardContent className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
@@ -497,6 +529,17 @@ export function AssignmentScreen() {
             }
           }}
           onConfirm={() => void assign(confirmation)}
+        />
+      )}
+
+      {staffModalOpen && booking.data && (
+        <StaffAssignmentModal
+          booking={booking.data}
+          isOpen={staffModalOpen}
+          onClose={() => {
+            setStaffModalOpen(false);
+            booking.refetch();
+          }}
         />
       )}
     </div>

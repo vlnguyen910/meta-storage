@@ -18,7 +18,7 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
   const bookings = useQuery({
     queryKey: [...bookingKeys.staffTasks(facilityId), actorId, date],
     queryFn: () => api.appointments.assignedToMe({ facilityId }),
-    enabled: kind !== "TASK" && Boolean(facilityId && actorId),
+    enabled: Boolean(facilityId && actorId),
     refetchInterval: 30_000,
   });
   const tasks = useQuery({
@@ -33,75 +33,73 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
       }
       return [...new Map(items.map((item) => [item.id, item])).values()];
     },
-    enabled: kind !== "CHECK_IN" && Boolean(facilityId && actorId) && !isMockMode,
+    enabled: Boolean(facilityId && actorId) && !isMockMode,
     refetchInterval: 30_000,
   });
-  const queries = [
-    ...(kind !== "TASK" ? [bookings] : []),
-    ...(kind !== "CHECK_IN" && !isMockMode ? [tasks] : []),
+  const queries = [bookings, ...(!isMockMode ? [tasks] : [])];
+  const allItems = [
+    ...(bookings.data ?? [])
+      .filter(
+        (item) =>
+          item.assignedStaffId === actorId &&
+          item.facilityId === facilityId &&
+          (date === "all" || item.scheduledDate === date),
+      )
+      .map((item): import("./staff-work.types").StaffWorkItem => {
+        const assignedTask = (tasks.data ?? []).find(
+          (task) => task.referenceType === "APPOINTMENT" && task.referenceId === item.id,
+        );
+        return {
+          id: `appointment:${item.id}`,
+          kind:
+            item.appointmentType === "CHECK_IN"
+              ? "CHECK_IN"
+              : item.appointmentType === "CHECK_OUT"
+                ? "RETURN"
+                : item.appointmentType === "SUPPORT"
+                  ? "SUPPORT"
+                  : "TASK",
+          group:
+            item.status === "COMPLETED"
+              ? "done"
+              : ["CANCELLED", "NO_SHOW"].includes(item.status)
+                ? "closed"
+                : "pending",
+          title: item.customerName ?? M.customer,
+          typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
+          statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
+          reference: [
+            item.assignedUnit?.physicalUnitCode,
+            formatReference(item.reservationId ?? item.id, item.reservationId ? "BK" : "LH"),
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          startsAt: `${item.scheduledDate}T${item.slotStart ?? "00:00:00"}+07:00`,
+          href:
+            item.appointmentType === "CHECK_OUT" && assignedTask
+              ? `/staff/tasks/${assignedTask.id}`
+              : `/staff/check-in?appointmentId=${item.id}`,
+          action: M.openTask,
+        };
+      }),
+    ...(!isMockMode
+      ? (tasks.data ?? [])
+          .filter(
+            (task) =>
+              task.assignedStaffId === actorId &&
+              task.facilityId === facilityId &&
+              task.referenceType !== "APPOINTMENT",
+          )
+          .map(facilityWork)
+      : []),
   ];
+  const typeCount = (selectedKind: StaffWorkFilters["kind"]) =>
+    selectedKind === ""
+      ? allItems.length
+      : allItems.filter((item) => item.kind === selectedKind).length;
   return {
-    items: [
-      ...(kind !== "TASK"
-        ? (bookings.data ?? [])
-            .filter(
-              (item) =>
-                item.assignedStaffId === actorId &&
-                item.facilityId === facilityId &&
-                (kind === "RETURN"
-                  ? item.appointmentType === "CHECK_OUT"
-                  : kind === "CHECK_IN"
-                    ? item.appointmentType === "CHECK_IN"
-                    : true) &&
-                (date === "all" || item.scheduledDate === date),
-            )
-            .map((item): import("./staff-work.types").StaffWorkItem => {
-              const assignedTask = (tasks.data ?? []).find(
-                (task) => task.referenceType === "APPOINTMENT" && task.referenceId === item.id,
-              );
-              return {
-                id: `appointment:${item.id}`,
-                kind:
-                  item.appointmentType === "CHECK_IN"
-                    ? "CHECK_IN"
-                    : item.appointmentType === "CHECK_OUT"
-                      ? "RETURN"
-                      : "TASK",
-                group:
-                  item.status === "COMPLETED"
-                    ? "done"
-                    : ["CANCELLED", "NO_SHOW"].includes(item.status)
-                      ? "closed"
-                      : "pending",
-                title: item.customerName ?? M.customer,
-                typeLabel: APPOINTMENTS_UI.types[item.appointmentType] ?? item.appointmentType,
-                statusLabel: APPOINTMENTS_UI.statuses[item.status] ?? item.status,
-                reference: [
-                  item.assignedUnit?.physicalUnitCode,
-                  formatReference(item.reservationId ?? item.id, item.reservationId ? "BK" : "LH"),
-                ]
-                  .filter(Boolean)
-                  .join(" · "),
-                startsAt: `${item.scheduledDate}T${item.slotStart ?? "00:00:00"}+07:00`,
-                href:
-                  item.appointmentType === "CHECK_OUT" && assignedTask
-                    ? `/staff/tasks/${assignedTask.id}`
-                    : `/staff/check-in?appointmentId=${item.id}`,
-                action: M.openTask,
-              };
-            })
-        : []),
-      ...(kind !== "CHECK_IN" && !isMockMode
-        ? (tasks.data ?? [])
-            .filter(
-              (t) =>
-                t.assignedStaffId === actorId &&
-                t.facilityId === facilityId &&
-                t.referenceType !== "APPOINTMENT",
-            )
-            .map(facilityWork)
-        : []),
-    ],
+    items: allItems.filter((item) => kind === "" || item.kind === kind),
+    typeCount,
     pending: queries.some((q) => q.isPending),
     error: queries.some((q) => q.isError),
     refreshing: queries.some((q) => q.isFetching),

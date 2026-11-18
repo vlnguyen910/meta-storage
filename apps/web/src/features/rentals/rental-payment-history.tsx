@@ -1,8 +1,9 @@
 "use client";
 
+import type { RentalPaymentItem } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownLeft, ArrowUpRight, ReceiptText } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Eye, ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { OperationalBadge } from "@/components/ui/operational";
@@ -10,11 +11,13 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useFlow3Identity } from "@/features/returns/use-flow3-identity";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { PaymentDetailDialog } from "./payment-detail-dialog";
 import { RENTAL_MESSAGES as M } from "./rentals.messages";
 
 export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
   const identity = useFlow3Identity();
   const [page, setPage] = useState(1);
+  const [selectedPayment, setSelectedPayment] = useState<RentalPaymentItem | null>(null);
   const query = useQuery({
     queryKey: ["rental-payments", identity, rentalId],
     queryFn: ({ signal }) => api.rentalPayments(rentalId, signal),
@@ -48,9 +51,14 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
         <div className="px-6 py-10 text-center text-sm text-slate-500">{M.noPayments}</div>
       ) : (
         <>
-          <div className="hidden grid-cols-[1.3fr_1.1fr_1fr_1fr_1fr] gap-4 bg-slate-50 px-6 py-3 text-xs font-semibold text-slate-500 md:grid">
+          <div className="hidden grid-cols-[1.3fr_1.1fr_1fr_1fr_1fr_auto] gap-4 bg-slate-50 px-6 py-3 text-xs font-semibold text-slate-500 md:grid">
             {M.paymentHeadings.map((label) => (
-              <span key={label}>{label}</span>
+              <span
+                key={label}
+                className={label === M.paymentHeadings[5] ? "text-right" : undefined}
+              >
+                {label}
+              </span>
             ))}
           </div>
           <ul className="divide-y divide-slate-100">
@@ -60,7 +68,7 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
               return (
                 <li
                   key={payment.id}
-                  className="grid grid-cols-2 items-center gap-3 px-5 py-4 text-sm md:grid-cols-[1.3fr_1.1fr_1fr_1fr_1fr] md:gap-4 md:px-6"
+                  className="grid grid-cols-2 items-center gap-3 px-5 py-4 text-sm md:grid-cols-[1.3fr_1.1fr_1fr_1fr_1fr_auto] md:gap-4 md:px-6 hover:bg-slate-50/70 transition-colors group"
                 >
                   <time
                     className="text-xs leading-5 text-slate-600"
@@ -68,7 +76,7 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
                   >
                     {formatDateTime(payment.paidAt ?? payment.createdAt)}
                   </time>
-                  <span className="break-all text-right font-mono text-xs font-semibold text-slate-600 md:text-left">
+                  <span className="break-all text-right font-mono text-xs font-semibold text-slate-600 md:text-left group-hover:text-primary transition-colors">
                     {formatReference(payment.paymentCode, "TT")}
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-600">
@@ -78,11 +86,24 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
                   <strong className="text-right tabular-nums text-primary md:text-left">
                     {formatCurrency(Number(payment.totalAmount))}
                   </strong>
-                  <div className="col-span-2 md:col-span-1">
+                  <div>
                     <OperationalBadge
                       value={payment.status}
                       label={M.paymentStatuses[payment.status] ?? payment.status}
                     />
+                  </div>
+                  <div className="col-span-2 md:col-span-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPayment(payment);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 hover:text-primary transition-all cursor-pointer"
+                    >
+                      <Eye size={13} className="text-slate-400 group-hover:text-primary" />
+                      <span>{M.paymentActionView}</span>
+                    </button>
                   </div>
                 </li>
               );
@@ -99,6 +120,14 @@ export function RentalPaymentHistory({ rentalId }: { rentalId: string }) {
                 unitLabel={M.paymentUnit}
               />
             </div>
+          )}
+
+          {selectedPayment && (
+            <PaymentDetailDialog
+              payment={selectedPayment}
+              isOpen={Boolean(selectedPayment)}
+              onClose={() => setSelectedPayment(null)}
+            />
           )}
         </>
       )}

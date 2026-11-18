@@ -34,6 +34,7 @@ const dashboard: FacilityTaskDashboardSummary = {
   pendingCount: 2,
   byType: {
     [FacilityTaskType.CHECK_IN_HANDOVER]: 1,
+    [FacilityTaskType.RETURN_INSPECTION]: 0,
     [FacilityTaskType.UNIT_INSPECTION]: 1,
     [FacilityTaskType.HANDLE_SUPPORT]: 0,
   },

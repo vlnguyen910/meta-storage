@@ -11,7 +11,9 @@ import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { PaymentDetailDialog } from "./payment-detail-dialog";
 import { TRANSACTION_MESSAGES as M } from "./transactions.messages";
+import type { CustomerTransaction } from "./transactions.types";
 import { type TransactionView, useCustomerTransactions } from "./use-customer-transactions";
 
 export function CustomerTransactionsScreen() {
@@ -20,6 +22,7 @@ export function CustomerTransactionsScreen() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedItem, setSelectedItem] = useState<CustomerTransaction | null>(null);
   const pageSize = 8;
 
   const query = useCustomerTransactions(view);
@@ -253,6 +256,14 @@ export function CustomerTransactionsScreen() {
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedItem({ rental, payment })}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        <span>{M.detailAction}</span>
+                      </button>
+                      <span className="text-slate-300">|</span>
                       <Link
                         href={customerRoutes.rental(rental.id)}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
@@ -297,6 +308,17 @@ export function CustomerTransactionsScreen() {
           </Button>
         )}
       </div>
+
+      {selectedItem && (
+        <PaymentDetailDialog
+          payment={selectedItem.payment}
+          isOpen={Boolean(selectedItem)}
+          onClose={() => setSelectedItem(null)}
+          bookingCode={selectedItem.rental.bookingCode}
+          unitTypeName={selectedItem.rental.unitType.name}
+          facilityName={selectedItem.rental.facility.name}
+        />
+      )}
     </div>
   );
 }

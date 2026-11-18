@@ -9,6 +9,7 @@ import {
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionListQuery,
   type InspectionRecord,
+  MaintenanceChecklistCompletionSchema,
   ReturnChecklistCompletionSchema,
   type UpdateInspectionInput,
   type UpdatePolicyViolationFeeCatalog,
@@ -94,15 +95,12 @@ export class InspectionsService {
       return this.startForAppointment(input, context.referenceId, actor);
     const record = await this.repository.transaction(async (tx) => {
       const [task] = await this.tasks.findForUpdate(tx, input.taskId);
-      if (
-        !task ||
-        task.assignedStaffId !== actor.id ||
-        ![FacilityTaskStatus.ASSIGNED, FacilityTaskStatus.IN_PROGRESS].includes(task.status)
-      )
-        return undefined;
+      if (!task || task.assignedStaffId !== actor.id) return undefined;
 
       const [existing] = await this.repository.findByTask(task.id, tx);
       if (existing) return existing;
+      if (![FacilityTaskStatus.ASSIGNED, FacilityTaskStatus.IN_PROGRESS].includes(task.status))
+        return undefined;
 
       let storageUnitId: string | undefined;
       let inspectionType: InspectionType;
@@ -152,7 +150,14 @@ export class InspectionsService {
         task.referenceId !== appointment.id ||
         task.assignedStaffId !== actor.id ||
         task.status !== FacilityTaskStatus.IN_PROGRESS ||
-        appointment.status !== AppointmentStatus.CONFIRMED
+        appointment.status !== AppointmentStatus.CONFIRMED ||
+        (appointment.appointmentType === AppointmentType.CHECK_IN &&
+          task.type !== FacilityTaskType.CHECK_IN_HANDOVER) ||
+        (appointment.appointmentType === AppointmentType.CHECK_OUT &&
+          task.type !== FacilityTaskType.RETURN_INSPECTION &&
+          task.type !== FacilityTaskType.UNIT_INSPECTION) ||
+        (appointment.appointmentType !== AppointmentType.CHECK_IN &&
+          appointment.appointmentType !== AppointmentType.CHECK_OUT)
       )
         throw new ConflictError(m.taskNotAvailable);
       const [existing] = await this.repository.findByTask(task.id, tx);
@@ -411,13 +416,19 @@ export class InspectionsService {
         !(input.condition ?? locked.condition)
       )
         throw new ConflictError(m.conditionRequired);
-      if (nextStatus === InspectionStatus.PASSED) {
+      if (
+        nextStatus === InspectionStatus.PASSED ||
+        (nextStatus === InspectionStatus.FAILED &&
+          locked.inspectionType === InspectionType.MAINTENANCE)
+      ) {
         const checklist = input.checklist ?? locked.checklist;
         const results = Array.isArray(checklist.results) ? checklist.results : [];
         const completionSchema =
           locked.inspectionType === InspectionType.CHECK_OUT
             ? ReturnChecklistCompletionSchema
-            : HandoverChecklistCompletionSchema;
+            : nextStatus === InspectionStatus.FAILED
+              ? MaintenanceChecklistCompletionSchema
+              : HandoverChecklistCompletionSchema;
         if (!completionSchema.safeParse(results).success)
           throw new ConflictError(m.checklistRequired);
       }
@@ -460,6 +471,18 @@ export class InspectionsService {
         inspectedAt: locked.inspectedAt ?? now,
         inspectDoneAt: terminal ? (locked.inspectDoneAt ?? now) : null,
       });
+      if (terminal && locked.inspectionType === InspectionType.MAINTENANCE) {
+        if (
+          task.type !== FacilityTaskType.UNIT_INSPECTION ||
+          task.referenceType !== FacilityTaskReferenceType.STORAGE_UNIT
+        )
+          throw new ConflictError(m.taskNotAvailable);
+        await this.tasks.setWorkflowStatus(tx, task.id, FacilityTaskStatus.COMPLETED, {
+          startedAt: task.startedAt ?? locked.inspectedAt ?? now,
+          completedAt: now,
+          updatedAt: now,
+        });
+      }
       return updatedRecord;
     });
     if (!updated) throw new NotFoundError(m.notFound);

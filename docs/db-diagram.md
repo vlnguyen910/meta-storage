@@ -20,7 +20,7 @@ keeping IDs, financial facts, rental/inspection history and assigned tasks.
 | `debts` | Created only for deductions exceeding the deposit. Tracks original amount, paid amount and UNPAID/PARTIALLY_PAID/PAID independently of Rental closure. |
 | `policy_violation_fee` | Stores BOM catalog rows (null reference, versioned and soft-disabled) and applied fee snapshots (INSPECTION reference, code/name/VND amount/version/note). Applied rows do not change when the catalog changes. |
 | `capacity_allocations` | HOLD reserves capacity for ten minutes during checkout. A successful reservation payment changes it to RESERVATION without expiry. All allocation kinds contribute to the existing capacity calculation. |
-| `facility_tasks` | APPOINTMENT owns scheduled work; BOOKING is retained only for archived tasks. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates UNIT_INSPECTION and SUPPORT creates HANDLE_SUPPORT. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
+| `facility_tasks` | APPOINTMENT owns scheduled work; BOOKING is retained only for archived tasks. CHECK_IN creates CHECK_IN_HANDOVER, CHECK_OUT creates RETURN_INSPECTION (legacy returns may still use UNIT_INSPECTION), and SUPPORT creates HANDLE_SUPPORT. FM-requested checks of a storage unit use UNIT_INSPECTION. Assignment/reassignment belongs to the appointment workflow. Staff start through the existing task API; completion/cancellation commits with the appointment. |
 
 ```mermaid
 erDiagram
@@ -303,9 +303,10 @@ domain audit records remain unchanged.
 
 ## Facility work tasks
 
-`facility_tasks` is one staff work queue for check-in and handover, unit inspection,
-and support handling. `type` is `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, or
-`HANDLE_SUPPORT`; `status` is `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, or
+`facility_tasks` is one staff work queue for check-in and handover, return inspection,
+facility-requested unit inspection, and support handling. `type` is
+`CHECK_IN_HANDOVER`, `RETURN_INSPECTION`, `UNIT_INSPECTION`, or `HANDLE_SUPPORT`;
+`status` is `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, or
 `CANCELLED`. Each row has UUID id, facility_id, reference_type/reference_id,
 assigned_staff_id and assigned_by FKs, nullable description, nullable started_at
 and completed_at, assigned_at, created_at and updated_at. The polymorphic reference
@@ -314,8 +315,10 @@ cannot have foreign keys to three tables, repositories validate target existence
 and same-facility scope under transaction locks.
 
 `CHECK_IN_HANDOVER` references an appointment and is created or reassigned in the
-same transaction as manager appointment assignment. `UNIT_INSPECTION` references an
-appointment or storage unit; `HANDLE_SUPPORT` references a support ticket. Reassignment
+same transaction as manager appointment assignment. `RETURN_INSPECTION` references a
+check-out appointment and is created or reassigned with that appointment workflow.
+`UNIT_INSPECTION` references an FM-requested storage-unit inspection (legacy booking
+or appointment references remain supported); `HANDLE_SUPPORT` references a support ticket. Reassignment
 resets an in-progress task to `ASSIGNED`; same assignee retries are no-ops. The
 assigned active Facility Staff starts and completes the task. An assigned-facility
 FM may cancel unfinished work. There is no separate task report, approval state,
@@ -361,7 +364,7 @@ assignment constraints.
   `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
   `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
   `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
-  `facility_task_type`: `CHECK_IN_HANDOVER`, `UNIT_INSPECTION`, `HANDLE_SUPPORT`;
+  `facility_task_type`: `CHECK_IN_HANDOVER`, `RETURN_INSPECTION`, `UNIT_INSPECTION`, `HANDLE_SUPPORT`;
   `facility_task_status`: `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`;
   `facility_task_reference_type`: `BOOKING`, `STORAGE_UNIT`, `SUPPORT_TICKET`;
   `capacity_allocation_kind`: `HOLD`, `BOOKING`; and

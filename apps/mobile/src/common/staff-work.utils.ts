@@ -35,12 +35,30 @@ function staffWorkCompletedAt(item: StaffSelection) {
 }
 export function filterStaffWork(items: StaffSelection[], filters: StaffWorkFilters) {
   const matching = items.filter((item) => {
-    if (filters.kind !== "all" && item.kind !== filters.kind) return false;
+    if (filters.kind !== "all") {
+      if (filters.kind === "task") {
+        if (item.kind !== "task") return false;
+      } else if (filters.kind === "appointment") {
+        if (item.kind !== "appointment") return false;
+      } else if (filters.kind === "check_in") {
+        if (
+          item.kind !== "appointment" ||
+          (item.appointment.appointmentType && item.appointment.appointmentType !== "CHECK_IN")
+        )
+          return false;
+      } else if (filters.kind === "return") {
+        if (item.kind !== "appointment" || item.appointment.appointmentType !== "CHECK_OUT")
+          return false;
+      } else if (filters.kind === "support") {
+        if (item.kind !== "appointment" || item.appointment.appointmentType !== "SUPPORT")
+          return false;
+      }
+    }
     const date = staffWorkScheduledAt(item);
     if (filters.date && date && staffWorkDate(date) !== filters.date) return false;
     const text =
       item.kind === "appointment"
-        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""} ${item.appointment.assignedUnit?.physicalUnitCode ?? ""} ${formatReference(item.appointment.reservationId ?? item.appointment.id, item.appointment.reservationId ? "BK" : "LH")}`
+        ? `${item.appointment.customerName ?? ""} ${item.appointment.id} ${item.appointment.contactPhone ?? ""} ${item.appointment.assignedUnit?.physicalUnitCode ?? ""} ${formatReference(item.appointment.reservationId ?? item.appointment.rentalId ?? item.appointment.id, item.appointment.reservationId ? "BK" : item.appointment.rentalId ? "KT" : "LH")}`
         : `${item.task.description ?? ""} ${M.type[item.task.type] ?? ""}`;
     return text.toLocaleLowerCase("vi").includes(filters.search.trim().toLocaleLowerCase("vi"));
   });

@@ -59,7 +59,7 @@ export function CustomerDashboardScreen() {
   const pagedRentals = allRentals.slice((rentalPage - 1) * pageSize, rentalPage * pageSize);
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
+    <div className="flex flex-col w-full gap-4 pb-6">
       {/* 1. Header (Compact) */}
       <header className="shrink-0 flex items-center justify-between gap-4">
         <div>
@@ -255,7 +255,7 @@ export function CustomerDashboardScreen() {
 
         {/* Tab 1: Bookings Table */}
         {activeTab === "bookings" && (
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2">
+          <div className="flex flex-col gap-2">
             {bookings.isPending ? (
               <LoadingState variant="table" />
             ) : bookings.isError ? (
@@ -352,7 +352,7 @@ export function CustomerDashboardScreen() {
 
         {/* Tab 2: Rentals Table */}
         {activeTab === "rentals" && (
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden gap-2">
+          <div className="flex flex-col gap-2">
             {rentals.isPending ? (
               <LoadingState variant="table" />
             ) : rentals.isError ? (

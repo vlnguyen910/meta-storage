@@ -6,7 +6,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   DoorOpen,
-  History,
   LayoutGrid,
   LogOut,
   Menu,
@@ -203,38 +202,6 @@ function FacilityShellContent({
                   <Icon size={20} aria-hidden="true" />
                   {label}
                 </Link>
-              ))}
-              <p
-                className={cn(
-                  "px-2 pb-1 pt-4 text-[11px] font-bold uppercase tracking-wider",
-                  isManager ? "text-slate-500" : "text-[#bfc9c4]",
-                )}
-              >
-                {FLOW.extension}
-              </p>
-              {[{ label: FLOW.history, icon: History }].map(({ label, icon: Icon }) => (
-                <div
-                  key={label}
-                  aria-disabled="true"
-                  title={`${label} · ${FLOW.unavailable}`}
-                  className={cn(
-                    "flex cursor-not-allowed select-none items-center gap-2 rounded px-2 py-2 opacity-50",
-                    isManager ? "text-slate-600" : "text-[#bfc9c4]",
-                  )}
-                >
-                  <Icon size={20} />
-                  <div>
-                    <span>{label}</span>
-                    <span
-                      className={cn(
-                        "block text-[10px]",
-                        isManager ? "text-slate-500" : "text-[#89c5b3]",
-                      )}
-                    >
-                      {FLOW.unavailable}
-                    </span>
-                  </div>
-                </div>
               ))}
             </nav>
           </div>

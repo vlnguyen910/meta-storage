@@ -3,6 +3,7 @@
 import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import {
   Calendar,
   CalendarCheck,
@@ -49,12 +50,23 @@ function remainingLabel(endAt: string): string {
   return `Còn ${diffDays} ngày`;
 }
 
+function returnErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as
+      | { error?: { message?: string }; message?: string }
+      | undefined;
+    return data?.error?.message ?? data?.message ?? M.returnCreateError;
+  }
+  return error instanceof Error ? error.message : M.returnCreateError;
+}
+
 export function RentalDetail({ rentalId }: { rentalId: string }) {
   const { showToast } = useToast();
   const query = useRental(rentalId);
   const client = useQueryClient();
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [confirmEarlyReturn, setConfirmEarlyReturn] = useState(false);
+  const [confirmCancelReturn, setConfirmCancelReturn] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [slotId, setSlotId] = useState("");
   const slots = useQuery({
@@ -88,6 +100,9 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
         client.invalidateQueries({ queryKey: ["rentals"] }),
       ]);
     },
+    onError: (error) => {
+      showToast(returnErrorMessage(error), "error");
+    },
   });
   const cancelReturn = useMutation({
     mutationFn: (appointmentId: string) =>
@@ -109,7 +124,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
   const selectedSlot = slots.data?.find((slot) => slot.id === slotId);
   const selectedSlotIsPast =
     scheduledDate === today &&
-    Boolean(selectedSlot && selectedSlot.startTime.slice(0, 5) <= currentTime);
+    Boolean(selectedSlot && selectedSlot.endTime.slice(0, 5) <= currentTime);
   const hasPendingReturn = appointments.data?.some((item) =>
     ["SCHEDULED", "CONFIRMED"].includes(item.status),
   );
@@ -264,7 +279,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                   loading={cancelReturn.isPending}
                   disabled={appointments.isPending || cancelReturn.isPending}
                   onClick={() =>
-                    activeReturn ? cancelReturn.mutate(activeReturn.id) : setShowReturnForm(true)
+                    activeReturn ? setConfirmCancelReturn(true) : setShowReturnForm(true)
                   }
                 >
                   <RotateCcw className="size-3.5" />
@@ -368,7 +383,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
               )}
             {createReturn.isError && (
               <p role="alert" className="text-sm text-danger">
-                {M.returnCreateError}
+                {returnErrorMessage(createReturn.error)}
               </p>
             )}
           </div>
@@ -409,27 +424,57 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
           </div>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirmEarlyReturn} onOpenChange={setConfirmEarlyReturn}>
+      <AlertDialog
+        open={confirmEarlyReturn || confirmCancelReturn}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmEarlyReturn(false);
+            setConfirmCancelReturn(false);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{M.returnEarlyTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmEarlyReturn ? M.returnEarlyTitle : M.returnCancelConfirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {M.returnEarlyDescription(formatDate(r.endAt))}
+              {confirmEarlyReturn
+                ? M.returnEarlyDescription(formatDate(r.endAt))
+                : M.returnCancelConfirmDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
-              <Button variant="outline">{M.returnEarlyCancel}</Button>
+              <Button variant="outline">
+                {confirmEarlyReturn ? M.returnEarlyCancel : M.cancel}
+              </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Button
-                variant="primary"
-                loading={createReturn.isPending}
-                disabled={createReturn.isPending}
-                onClick={() => createReturn.mutate()}
-              >
-                {M.returnEarlyConfirm}
-              </Button>
+              {confirmEarlyReturn ? (
+                <Button
+                  variant="primary"
+                  loading={createReturn.isPending}
+                  disabled={createReturn.isPending}
+                  onClick={() => createReturn.mutate()}
+                >
+                  {M.returnEarlyConfirm}
+                </Button>
+              ) : (
+                <Button
+                  variant="danger"
+                  loading={cancelReturn.isPending}
+                  disabled={cancelReturn.isPending}
+                  onClick={() => {
+                    if (activeReturn) {
+                      cancelReturn.mutate(activeReturn.id);
+                    }
+                    setConfirmCancelReturn(false);
+                  }}
+                >
+                  {M.returnCancelConfirmAction}
+                </Button>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

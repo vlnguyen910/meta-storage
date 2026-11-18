@@ -9,12 +9,14 @@ function appointment(
   status = "SCHEDULED",
   time = "2026-10-29T01:00:00Z",
   stage = "WAITING_CUSTOMER",
+  type = "CHECK_IN",
 ): StaffSelection {
   return {
     kind: "appointment",
     appointment: {
       id,
       status,
+      appointmentType: type,
       handoverStage: stage,
       scheduledDate: time.slice(0, 10),
       slotStart: `${String(new Date(time).getUTCHours() + 7).padStart(2, "0")}:00:00`,
@@ -106,6 +108,37 @@ describe("Staff work presentation", () => {
       done: 0,
       closed: 0,
     });
+  });
+  test("filters appointments by specific kind: check_in, return, support", () => {
+    const checkInItem = appointment(
+      "ci-1",
+      "SCHEDULED",
+      "2026-10-29T01:00:00Z",
+      "WAITING_CUSTOMER",
+      "CHECK_IN",
+    );
+    const returnItem = appointment(
+      "ret-1",
+      "SCHEDULED",
+      "2026-10-29T02:00:00Z",
+      "WAITING_CUSTOMER",
+      "CHECK_OUT",
+    );
+    const supportItem = appointment(
+      "sup-1",
+      "SCHEDULED",
+      "2026-10-29T03:00:00Z",
+      "WAITING_CUSTOMER",
+      "SUPPORT",
+    );
+    const taskItem = task("task-1");
+    const source = [checkInItem, returnItem, supportItem, taskItem];
+
+    expect(filterStaffWork(source, { ...filters, kind: "check_in" }).items).toEqual([checkInItem]);
+    expect(filterStaffWork(source, { ...filters, kind: "return" }).items).toEqual([returnItem]);
+    expect(filterStaffWork(source, { ...filters, kind: "support" }).items).toEqual([supportItem]);
+    expect(filterStaffWork(source, { ...filters, kind: "task" }).items).toEqual([taskItem]);
+    expect(filterStaffWork(source, { ...filters, kind: "all" }).items).toHaveLength(4);
   });
   test("searches customer names, appointment IDs and phones with trimmed case-insensitive text", () => {
     const source = [appointment("001"), task("inspection")];
