@@ -8,7 +8,7 @@ import { LandingReveal } from "./landing-reveal";
 
 export const landingContainer = "mx-auto w-full max-w-6xl px-5 sm:px-8";
 export const landingSection = "py-14 sm:py-20";
-export const actionClass =
+const actionClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
 
 export function LandingAction({
