@@ -1,8 +1,8 @@
 import { ArrowRight, ChevronRight, KeyRound, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { PublicHeader } from "@/components/layout/public-header";
-import { BrandLogo } from "@/components/ui/brand-logo";
 import { routes } from "@/config/routes";
+import { LandingFooter } from "../landing/landing-sections";
 import { facilitiesMessages as m } from "./facilities.messages";
 import { FacilityList } from "./facility-list";
 import styles from "./metastorage-fonts.module.css";
@@ -62,47 +62,7 @@ export function PublicFacilitiesScreen() {
           </Link>
         </section>
       </main>
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto grid w-[min(1180px,calc(100%_-_40px))] gap-10 py-12 md:grid-cols-[2fr_1fr_1fr]">
-          <div>
-            <Link
-              href={routes.home}
-              className="inline-flex items-center gap-2 text-2xl font-bold text-primary"
-            >
-              <BrandLogo />
-              {m.brand}
-            </Link>
-            <p className="mt-4 max-w-[420px] text-xs text-slate-500">{m.footerDescription}</p>
-          </div>
-          <div className="grid content-start gap-3 text-xs text-slate-600">
-            <h2 className="mb-2 font-bold text-slate-900">{m.about}</h2>
-            <Link href={routes.home} className="hover:text-primary transition-colors">
-              {m.home}
-            </Link>
-            <Link href={routes.facilities} className="hover:text-primary transition-colors">
-              {m.title}
-            </Link>
-            <Link
-              href={`${routes.home}#how-it-works`}
-              className="hover:text-primary transition-colors"
-            >
-              {m.how}
-            </Link>
-          </div>
-          <div className="grid content-start gap-3 text-xs text-slate-600">
-            <h2 className="mb-2 font-bold text-slate-900">{m.account}</h2>
-            <Link href={routes.login} className="hover:text-primary transition-colors">
-              {m.login}
-            </Link>
-            <Link href={routes.register} className="hover:text-primary transition-colors">
-              {m.register}
-            </Link>
-          </div>
-        </div>
-        <div className="mx-auto w-[min(1180px,calc(100%_-_40px))] border-t border-slate-100 py-5 text-[10px] text-slate-400">
-          {m.copyright}
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
