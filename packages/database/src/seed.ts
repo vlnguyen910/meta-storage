@@ -1953,9 +1953,9 @@ async function seed() {
   const checkInSlotsData = [
     {
       id: SEED_IDS.checkInSlots[0],
-      name: "Ca demo hôm nay",
-      startTime: "07:00:00",
-      endTime: "20:00:00",
+      name: "Ca 1",
+      startTime: "09:00:00",
+      endTime: "10:30:00",
     },
     {
       id: SEED_IDS.checkInSlots[1],
