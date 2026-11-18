@@ -169,7 +169,8 @@ export const F5 = {
   noMock: "Màn vận hành này cần chế độ API thật. Chuyển NEXT_PUBLIC_API_MODE sang api để sử dụng.",
   typeLabels: {
     CHECK_IN_HANDOVER: "Check-in & Bàn giao",
-    UNIT_INSPECTION: "Kiểm tra kho",
+    RETURN_INSPECTION: "Kiểm tra trả kho",
+    UNIT_INSPECTION: "Kiểm tra tình trạng ô kho",
     HANDLE_SUPPORT: "Xử lý hỗ trợ",
   },
   statuses: {

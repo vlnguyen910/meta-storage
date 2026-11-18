@@ -56,7 +56,7 @@ export const facilityTasks = pgTable(
     // Text comparison lets enum additions and constraint changes migrate in one transaction.
     check(
       "facility_tasks_reference_valid",
-      sql`(${t.type} = 'CHECK_IN_HANDOVER' AND ${t.referenceType}::text IN ('BOOKING', 'APPOINTMENT')) OR (${t.type} = 'UNIT_INSPECTION' AND ${t.referenceType}::text IN ('BOOKING', 'STORAGE_UNIT', 'APPOINTMENT')) OR (${t.type} = 'HANDLE_SUPPORT' AND ${t.referenceType}::text IN ('SUPPORT_TICKET', 'APPOINTMENT'))`,
+      sql`(${t.type} = 'CHECK_IN_HANDOVER' AND ${t.referenceType}::text IN ('BOOKING', 'APPOINTMENT')) OR (${t.type} = 'RETURN_INSPECTION' AND ${t.referenceType}::text = 'APPOINTMENT') OR (${t.type} = 'UNIT_INSPECTION' AND ${t.referenceType}::text IN ('BOOKING', 'STORAGE_UNIT', 'APPOINTMENT')) OR (${t.type} = 'HANDLE_SUPPORT' AND ${t.referenceType}::text IN ('SUPPORT_TICKET', 'APPOINTMENT'))`,
     ),
   ],
 );
