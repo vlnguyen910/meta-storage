@@ -10,6 +10,7 @@ import {
   KeyRound,
   Lock,
   Mail,
+  RotateCcw,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -48,7 +49,33 @@ export function LoginForm() {
   const oauthError = searchParams.get("error");
   const hasRedirectedRef = useRef(false);
   const [hydrated, setHydrated] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
   useEffect(() => setHydrated(true), []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((v) => v - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  async function handleResendVerification() {
+    if (!unverifiedEmail || resendCooldown > 0 || isResending) return;
+    setIsResending(true);
+    try {
+      await api.auth.resendVerificationEmail(
+        unverifiedEmail,
+        `${window.location.origin}/verify-email`,
+      );
+      showToast(AUTH_MESSAGES.verificationResent, "success");
+      setResendCooldown(45);
+    } catch {
+      showToast(AUTH_MESSAGES.verificationRequestFailed, "error");
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   useEffect(() => {
     if (hasRedirectedRef.current) return;
@@ -107,6 +134,15 @@ export function LoginForm() {
         router.replace(destination);
       });
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data as
+          | { code?: string; message?: string; error?: { code?: string } }
+          | undefined;
+        const code = responseData?.code ?? responseData?.error?.code;
+        if (code === "EMAIL_NOT_VERIFIED") {
+          setUnverifiedEmail(values.email.trim().toLowerCase());
+        }
+      }
       showToast(getLoginErrorMessage(error), "error");
     }
   }
@@ -162,6 +198,47 @@ export function LoginForm() {
                             ? AUTH_MESSAGES.googleStateExpired
                             : AUTH_MESSAGES.googleAuthFailed}
                 </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {unverifiedEmail ? (
+          <div
+            className="mb-6 p-4 rounded-xl text-xs leading-relaxed border bg-amber-50 border-amber-200 text-amber-900"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+              <div className="flex-1">
+                <h3 className="text-sm font-bold mb-1">{AUTH_MESSAGES.verifyEmailTitle}</h3>
+                <p className="text-slate-600 mb-2.5">{AUTH_MESSAGES.loginEmailNotVerified}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={resendCooldown > 0 || isResending}
+                    onClick={handleResendVerification}
+                    className="inline-flex items-center gap-1.5 font-bold text-[#165f4d] hover:underline disabled:opacity-50"
+                  >
+                    <RotateCcw
+                      className={`w-3.5 h-3.5 ${isResending ? "animate-spin" : ""}`}
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {resendCooldown > 0
+                        ? AUTH_MESSAGES.resendCountdown(resendCooldown)
+                        : isResending
+                          ? AUTH_MESSAGES.resendingEmail
+                          : AUTH_MESSAGES.resendVerifyEmail}
+                    </span>
+                  </button>
+                  <Link
+                    href={`${routes.verifyEmail}?email=${encodeURIComponent(unverifiedEmail)}`}
+                    className="text-slate-500 hover:text-slate-800 hover:underline"
+                  >
+                    {AUTH_MESSAGES.verifyEmailTitle} →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

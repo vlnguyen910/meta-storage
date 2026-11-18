@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CustomerTable } from "@/components/ui/customer-table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListPagination } from "@/components/ui/list-pagination";
 import {
   Select,
@@ -33,7 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { customerRoutes } from "@/config/routes";
@@ -488,16 +488,16 @@ export function CustomerAppointmentsView() {
         </>
       )}
 
-      <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelectedId(null)}>
-        <SheetContent className="w-full max-w-xl p-5 sm:p-7">
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelectedId(null)}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto p-5 sm:max-w-2xl sm:p-7">
           {selected && (
             <>
-              <SheetHeader className="pr-12">
-                <SheetTitle className="font-['Space_Grotesk'] text-xl font-bold">
+              <DialogHeader className="pr-12">
+                <DialogTitle className="font-['Space_Grotesk'] text-xl font-bold">
                   {M.detailTitle}
-                </SheetTitle>
+                </DialogTitle>
                 <AppointmentStatus item={selected} />
-              </SheetHeader>
+              </DialogHeader>
               <div className="space-y-5">
                 <section>
                   <h3 className="font-semibold text-ink">{appointmentLabel(selected)}</h3>
@@ -555,8 +555,8 @@ export function CustomerAppointmentsView() {
               </div>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
       <AlertDialog
         open={Boolean(cancelTarget)}
         onOpenChange={(open) => !open && setCancelTarget(null)}

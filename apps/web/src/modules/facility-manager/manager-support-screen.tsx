@@ -7,6 +7,7 @@ import { ChevronRight, RefreshCw, Search, UserRound, Warehouse } from "lucide-re
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OperationalBadge } from "@/components/ui/operational";
 import {
   Select,
@@ -15,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -268,7 +268,7 @@ function SupportList({ facilityId }: { facilityId: string }) {
           )}
         </Card>
       )}
-      <Sheet
+      <Dialog
         open={selected !== null}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
@@ -281,7 +281,7 @@ function SupportList({ facilityId }: { facilityId: string }) {
             restoreFocus={() => opener.current?.focus()}
           />
         )}
-      </Sheet>
+      </Dialog>
     </div>
   );
 }
@@ -310,20 +310,20 @@ function SupportDetail({
     queryFn: ({ signal }) => api.support.facilityDetail(facilityId, id, signal),
   });
   return (
-    <SheetContent
+    <DialogContent
       aria-describedby={undefined}
-      className="max-w-none gap-0 p-0 md:max-w-[560px]"
+      className="max-h-[90dvh] overflow-y-auto max-w-none gap-0 p-0 sm:max-w-2xl"
       onCloseAutoFocus={(event) => {
         event.preventDefault();
         restoreFocus();
       }}
     >
-      <SheetHeader className="shrink-0 border-b border-line px-5 py-5 pr-16 sm:px-6 sm:pr-16">
-        <SheetTitle className="text-base font-bold">{M.supportDetailTitle}</SheetTitle>
+      <DialogHeader className="shrink-0 border-b border-line px-5 py-5 pr-16 sm:px-6 sm:pr-16">
+        <DialogTitle className="text-base font-bold">{M.supportDetailTitle}</DialogTitle>
         <p className="font-mono text-xs tracking-wide text-secondary">
           {formatReference(id, "YC")}
         </p>
-      </SheetHeader>
+      </DialogHeader>
       <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
         {detail.isPending ? (
           <LoadingState variant="table" />
@@ -333,7 +333,7 @@ function SupportDetail({
           <TicketContent ticket={detail.data} />
         )}
       </div>
-    </SheetContent>
+    </DialogContent>
   );
 }
 
