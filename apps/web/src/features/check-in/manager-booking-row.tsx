@@ -132,7 +132,7 @@ export function ManagerBookingRow({
       <div
         className={cn(
           "grid gap-x-5 gap-y-3 px-4 py-2.5 text-sm sm:grid-cols-2",
-          returnFlow ? "xl:grid-cols-3" : "xl:grid-cols-4",
+          checkInFlow ? "xl:grid-cols-4" : "xl:grid-cols-3",
         )}
       >
         <div className="flex min-w-0 items-start gap-2">
@@ -187,7 +187,7 @@ export function ManagerBookingRow({
             )}
           </div>
         </div>
-        {!returnFlow && (
+        {checkInFlow && (
           <div className="min-w-0">
             <p className={labelClass}>{M.payment}</p>
             <p className="font-bold tabular-nums text-ink">{formatBookingAmount(b.totalAmount)}</p>
