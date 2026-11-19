@@ -28,7 +28,7 @@ describe("checkout confirmation", () => {
     expect(screen.getAllByText("STX-DEMO-001")).toHaveLength(2);
     expect(screen.getByText("Email xác nhận đang chờ gửi.")).toBeInTheDocument();
     expect(screen.queryByText("Xác nhận đã được gửi tới email của bạn.")).not.toBeInTheDocument();
-    expect(screen.getByText(/Chưa tải được QR/)).toBeInTheDocument();
+    expect(screen.getByText("Thông tin nhận kho")).toBeInTheDocument();
   });
   it("shows successful email delivery only when reported by the server", () => {
     render(

@@ -1,4 +1,4 @@
-import { CalendarClock, MapPin, QrCode, Warehouse } from "lucide-react-native";
+import { CalendarClock, MapPin, Warehouse } from "lucide-react-native";
 import { Platform, ScrollView, Text, View } from "react-native";
 import type { AppointmentDetailScreenProps } from "../../common/customer-home.types";
 import {
@@ -8,7 +8,6 @@ import {
   paymentLabel,
 } from "../../common/customer-home.utils";
 import { Card, Icon, Notice, Row, StatusPill } from "../../components/ui";
-import { BookingQr } from "../../components/ui/booking-qr";
 import { dateTime, money } from "../../components/ui/mobile-ui";
 import { FacilitySummary } from "../../features/customer-home/components/facility-card";
 import { QueryFeedback } from "../../features/customer-home/components/query-feedback";
@@ -94,16 +93,15 @@ export function AppointmentDetailScreen({ owner, id }: AppointmentDetailScreenPr
               ) : null}
             </Card>
             <View className="mb-4 rounded-card bg-primary p-5">
-              <View className="mb-3 flex-row items-center gap-2">
-                <Icon as={QrCode} className="text-primary-foreground" />
+              <View className="mb-2 flex-row items-center gap-2">
+                <Icon as={CalendarClock} className="text-primary-foreground" />
                 <Text className="shrink font-body-bold text-[18px] text-primary-foreground">
                   {M.qr}
                 </Text>
               </View>
-              <Text className="mb-4 font-body text-label leading-6 text-primary-foreground">
+              <Text className="font-body text-label leading-6 text-primary-foreground">
                 {state.qrUrl ? M.qrHint : M.qrUnavailable}
               </Text>
-              {state.qrUrl ? <BookingQr value={state.qrUrl} label={M.qrLabel} /> : null}
             </View>
             <Card title={M.contract} compact outlined>
               {reservation ? (
