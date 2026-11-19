@@ -165,9 +165,7 @@ export const ManualPaymentInputSchema = z
     message: PAYMENT_CONTRACT_MESSAGES.refundReferenceRequired,
     path: ["reference"],
   });
-/** Staff records cash handed over at the facility; transfers go through the customer's SePay. */
-export const DebtPaymentInputSchema = z.strictObject({
-  method: z.literal("CASH"),
+export const DebtPaymentInputSchema = ManualPaymentInputSchema.safeExtend({
   amount: z.number().int().positive().max(999_999_999_999),
   idempotencyKey: z.string().min(16).max(123),
 });

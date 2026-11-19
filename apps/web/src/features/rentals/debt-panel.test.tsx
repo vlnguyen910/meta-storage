@@ -9,10 +9,7 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   get: vi.fn(),
   collect: vi.fn(),
-  startSepay: vi.fn(),
-  submit: vi.fn(),
 }));
-vi.mock("@/lib/sepay-checkout", () => ({ submitSepayCheckout: mocks.submit }));
 vi.mock("@/lib/api", () => ({ api: { debts: mocks } }));
 vi.mock("@/features/auth/auth-store", () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
@@ -50,55 +47,46 @@ beforeEach(() => {
   mocks.list.mockResolvedValue({ items: [debt], total: 1, limit: 10, offset: 0 });
   mocks.get.mockResolvedValue({ ...debt, payments: [] });
 });
-test("Staff collects the full fee in cash and retries with the same idempotency key", async () => {
+test("Staff retries a failed receipt with the same idempotency key", async () => {
   mocks.collect.mockRejectedValueOnce(new Error("Network uncertain")).mockResolvedValueOnce({
     ...debt,
-    status: "PAID",
-    paidAmount: "50000",
-    remainingAmount: "0",
+    status: "PARTIALLY_PAID",
+    paidAmount: "20000",
+    remainingAmount: "30000",
     payments: [],
   });
   const user = userEvent.setup();
   view();
   await user.click(
-    await screen.findByRole("button", { name: "Thu phí / xem lịch sử" }, { timeout: 3000 }),
+    await screen.findByRole(
+      "button",
+      { name: "Xem lịch sử / ghi nhận khoản thu" },
+      { timeout: 3000 },
+    ),
   );
-  await user.click(await screen.findByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }));
+  await user.type(await screen.findByLabelText("Số tiền đã nhận (VND)"), "20000");
+  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
   await screen.findByRole("alert");
-  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }));
+  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
   await waitFor(() => expect(mocks.collect).toHaveBeenCalledTimes(2));
   expect(mocks.collect.mock.calls[0]?.[1]).toEqual(mocks.collect.mock.calls[1]?.[1]);
   expect(mocks.collect.mock.calls[0]?.[1]).toMatchObject({
-    amount: 50000,
+    amount: 20000,
     method: "CASH",
     idempotencyKey: expect.any(String),
   });
 });
-test("Manager can read debt history without collecting or paying", async () => {
-  mocks.role = "FACILITY_MANAGER";
-  const user = userEvent.setup();
-  view();
-  await user.click(await screen.findByRole("button", { name: "Xem lịch sử" }));
-  await screen.findByText("Chưa ghi nhận khoản thu nào.");
-  expect(
-    screen.queryByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }),
-  ).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Thanh toán qua SePay" })).not.toBeInTheDocument();
-});
-test("Customer pays the remaining fee through SePay", async () => {
-  mocks.role = "CUSTOMER";
-  const session = { paymentId: "payment", checkoutUrl: "https://pay.example", formFields: {} };
-  mocks.startSepay.mockResolvedValue(session);
-  const user = userEvent.setup();
-  view();
-  await user.click(await screen.findByRole("button", { name: "Thanh toán" }));
-  expect(
-    screen.queryByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }),
-  ).not.toBeInTheDocument();
-  await user.click(await screen.findByRole("button", { name: "Thanh toán qua SePay" }));
-  await waitFor(() => expect(mocks.startSepay).toHaveBeenCalledWith("debt"));
-  await waitFor(() => expect(mocks.submit).toHaveBeenCalledWith(session));
-});
+test.each(["FACILITY_MANAGER", "CUSTOMER"])(
+  "%s can read debt history without collecting",
+  async (role) => {
+    mocks.role = role;
+    const user = userEvent.setup();
+    view();
+    await user.click(await screen.findByRole("button", { name: "Xem lịch sử" }));
+    await screen.findByText("Chưa ghi nhận khoản thu nào.");
+    expect(screen.queryByLabelText("Số tiền đã nhận (VND)")).not.toBeInTheDocument();
+  },
+);
 test("settlement remains visible when refund and debt are zero", () => {
   render(
     <SettlementSummary
@@ -118,15 +106,4 @@ test("settlement remains visible when refund and debt are zero", () => {
   expect(screen.getByText("Quyết toán trả kho")).toBeInTheDocument();
   expect(screen.getByText("Tiền hoàn")).toBeInTheDocument();
   expect(screen.getByText("Phí còn phải trả")).toBeInTheDocument();
-});
-test("Staff opens the SePay QR for the customer at the facility", async () => {
-  const session = { paymentId: "payment", checkoutUrl: "https://pay.example", formFields: {} };
-  mocks.startSepay.mockResolvedValue(session);
-  const user = userEvent.setup();
-  view();
-  await user.click(await screen.findByRole("button", { name: "Thu phí / xem lịch sử" }));
-  await user.click(await screen.findByRole("button", { name: "Thanh toán qua SePay" }));
-  await waitFor(() => expect(mocks.startSepay).toHaveBeenCalledWith("debt"));
-  await waitFor(() => expect(mocks.submit).toHaveBeenCalledWith(session));
-  expect(mocks.collect).not.toHaveBeenCalled();
 });

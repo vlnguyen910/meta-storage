@@ -73,8 +73,6 @@ export type SepayCreateCheckoutInput = {
   reservationId?: string;
   renewalId?: string;
   debtId?: string;
-  /** Staff opened the debt QR at the facility and returns to the staff workspace. */
-  staffCheckout?: boolean;
   paymentCode: string;
   amount: number;
   currency: string;

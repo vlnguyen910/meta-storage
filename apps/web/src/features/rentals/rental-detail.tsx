@@ -16,7 +16,6 @@ import {
   Warehouse,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
   AlertDialog,
@@ -64,8 +63,6 @@ function returnErrorMessage(error: unknown): string {
 }
 
 export function RentalDetail({ rentalId }: { rentalId: string }) {
-  // SePay returns here with ?debtId=…&status=… after a fee payment.
-  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const query = useRental(rentalId);
   const client = useQueryClient();
@@ -163,13 +160,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
       )}
 
       <SettlementSummary settlement={r.settlement} />
-      {r.status === "CLOSED" && (
-        <DebtPanel
-          rentalId={rentalId}
-          focusDebtId={searchParams?.get("debtId") ?? undefined}
-          paymentResult={searchParams?.get("status") ?? undefined}
-        />
-      )}
+      {r.status === "CLOSED" && <DebtPanel rentalId={rentalId} />}
       {/* Card 1: Rental Overview */}
       <Card className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4">

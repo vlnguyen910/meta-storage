@@ -145,6 +145,7 @@ export class PaymentsService {
           existing.debtId !== id ||
           Number(existing.totalAmount) !== input.amount ||
           existing.method !== input.method ||
+          existing.reference !== (input.reference ?? null) ||
           existing.recordedBy !== actor.id
         )
           throw new ConflictError(PAYMENT_MESSAGES.debtPaymentConflict);
@@ -161,6 +162,7 @@ export class PaymentsService {
         totalAmount: String(input.amount),
         currency: context.currency,
         method: PaymentMethod[input.method],
+        reference: input.reference,
         recordedBy: actor.id,
         status: "SUCCEEDED",
         paidAt: now,
@@ -179,20 +181,14 @@ export class PaymentsService {
     return this.getDebt(id, actor);
   }
 
-  /**
-   * The full remaining debt is paid through SePay's hosted checkout, opened either by the
-   * customer or by assigned staff showing the QR at the facility.
-   */
   async startDebtSepayPayment(
     id: string,
     actor: { id: string; role: string },
-    requestOrigin?: string,
   ): Promise<PaymentPendingResponse> {
     const gateway = this.sepayGateway;
     if (!gateway?.checkoutConfigured)
       throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
-    const staffCheckout = actor.role === UserRole.FACILITY_STAFF;
-    if (actor.role !== UserRole.STORAGE_CUSTOMER && !(staffCheckout && this.assignments))
+    if (actor.role !== UserRole.FACILITY_STAFF || !this.assignments)
       throw new ForbiddenError(PAYMENT_MESSAGES.debtAccessDenied);
     const assignments = this.assignments;
     const activity = beginActivity({
@@ -203,14 +199,11 @@ export class PaymentsService {
     });
     const prepared = await this.repository.transaction(async (tx) => {
       const context = await this.repository.findDebt(id, tx);
-      // Another customer's debt is reported as missing, like the read endpoint does.
-      if (!context || (!staffCheckout && context.customerId !== actor.id))
-        throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
+      if (!context) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
       activity.facilityId = context.facilityId;
-      if (staffCheckout && assignments)
-        await assignments.requireActiveAssignments(tx, context.facilityId, [
-          { userId: actor.id, role: UserRole.FACILITY_STAFF },
-        ]);
+      await assignments.requireActiveAssignments(tx, context.facilityId, [
+        { userId: actor.id, role: UserRole.FACILITY_STAFF },
+      ]);
       const debt = await this.repository.lockDebt(tx, id);
       if (!debt) throw new NotFoundError(PAYMENT_MESSAGES.debtNotFound);
       if (debt.status === DebtStatus.PAID)
@@ -254,8 +247,6 @@ export class PaymentsService {
       paymentId: prepared.id,
       debtId: id,
       rentalId: rentalId ?? undefined,
-      staffCheckout,
-      requestOrigin,
       paymentCode,
       amount: Number(prepared.totalAmount),
       currency: prepared.currency,
