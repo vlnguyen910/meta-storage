@@ -9,7 +9,10 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   get: vi.fn(),
   collect: vi.fn(),
+  startSepay: vi.fn(),
+  submit: vi.fn(),
 }));
+vi.mock("@/lib/sepay-checkout", () => ({ submitSepayCheckout: mocks.submit }));
 vi.mock("@/lib/api", () => ({ api: { debts: mocks } }));
 vi.mock("@/features/auth/auth-store", () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
@@ -58,13 +61,9 @@ test("Staff retries a failed receipt with the same idempotency key", async () =>
   const user = userEvent.setup();
   view();
   await user.click(
-    await screen.findByRole(
-      "button",
-      { name: "Xem lịch sử / ghi nhận khoản thu" },
-      { timeout: 3000 },
-    ),
+    await screen.findByRole("button", { name: "Thu tiền mặt / xem lịch sử" }, { timeout: 3000 }),
   );
-  await user.type(await screen.findByLabelText("Số tiền đã nhận (VND)"), "20000");
+  await user.type(await screen.findByLabelText("Số tiền mặt đã nhận (VND)"), "20000");
   await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
   await screen.findByRole("alert");
   await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
@@ -76,17 +75,27 @@ test("Staff retries a failed receipt with the same idempotency key", async () =>
     idempotencyKey: expect.any(String),
   });
 });
-test.each(["FACILITY_MANAGER", "CUSTOMER"])(
-  "%s can read debt history without collecting",
-  async (role) => {
-    mocks.role = role;
-    const user = userEvent.setup();
-    view();
-    await user.click(await screen.findByRole("button", { name: "Xem lịch sử" }));
-    await screen.findByText("Chưa ghi nhận khoản thu nào.");
-    expect(screen.queryByLabelText("Số tiền đã nhận (VND)")).not.toBeInTheDocument();
-  },
-);
+test("Manager can read debt history without collecting or paying", async () => {
+  mocks.role = "FACILITY_MANAGER";
+  const user = userEvent.setup();
+  view();
+  await user.click(await screen.findByRole("button", { name: "Xem lịch sử" }));
+  await screen.findByText("Chưa ghi nhận khoản thu nào.");
+  expect(screen.queryByLabelText("Số tiền mặt đã nhận (VND)")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Thanh toán qua SePay" })).not.toBeInTheDocument();
+});
+test("Customer pays the remaining fee through SePay", async () => {
+  mocks.role = "CUSTOMER";
+  const session = { paymentId: "payment", checkoutUrl: "https://pay.example", formFields: {} };
+  mocks.startSepay.mockResolvedValue(session);
+  const user = userEvent.setup();
+  view();
+  await user.click(await screen.findByRole("button", { name: "Thanh toán" }));
+  expect(screen.queryByLabelText("Số tiền mặt đã nhận (VND)")).not.toBeInTheDocument();
+  await user.click(await screen.findByRole("button", { name: "Thanh toán qua SePay" }));
+  await waitFor(() => expect(mocks.startSepay).toHaveBeenCalledWith("debt"));
+  await waitFor(() => expect(mocks.submit).toHaveBeenCalledWith(session));
+});
 test("settlement remains visible when refund and debt are zero", () => {
   render(
     <SettlementSummary

@@ -78,17 +78,18 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.post(
     "/debts/:id/payments/sepay",
     {
-      preHandler: [requireRole("FACILITY_STAFF")],
+      preHandler: [requireRole("CUSTOMER")],
       schema: { params: z.object({ id: z.uuid() }) },
     },
     async (request, reply) => {
       if (!request.user) throw new UnauthorizedError();
       reply.header("Cache-Control", "private, no-store");
       return successResponse(
-        await service.startDebtSepayPayment(request.params.id, {
-          id: request.user.id,
-          role: request.user.role ?? "",
-        }),
+        await service.startDebtSepayPayment(
+          request.params.id,
+          { id: request.user.id, role: request.user.role ?? "" },
+          request.headers.origin,
+        ),
       );
     },
   );
