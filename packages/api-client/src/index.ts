@@ -60,6 +60,7 @@ import type {
   OperationsOverview,
   PaginatedResult,
   PaymentCheckoutInput,
+  PaymentPendingResponse,
   PaymentResponse,
   PaymentStatusResponse,
   PricingChange,
@@ -417,6 +418,8 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       get: (id: string) => http.get<ApiEnvelope<DebtDetail>>(`/debts/${id}`).then(unwrap),
       collect: (id: string, input: DebtPaymentInput) =>
         http.post<ApiEnvelope<DebtDetail>>(`/debts/${id}/payments`, input).then(unwrap),
+      startSepay: (id: string) =>
+        http.post<ApiEnvelope<PaymentPendingResponse>>(`/debts/${id}/payments/sepay`).then(unwrap),
     },
     payments: {
       status: (paymentId: string, accessToken?: string) =>

@@ -160,13 +160,21 @@ export class SepayPaymentGateway {
       /^https?:\/\//.test(origin) &&
       (this.config.trustedWebOrigins ?? []).includes(origin);
     const webUrl = trustedWebOrigin ? origin : this.config.webUrl || "http://localhost:3000";
-    const resultUrl = new URL(
-      input.renewalId && input.rentalId
+    const resultPath = input.debtId
+      ? // Debt QR is opened by Staff, who returns to the staff workspace.
+        "/staff/tasks"
+      : input.renewalId && input.rentalId
         ? `/customer/storage/${input.rentalId}/renew`
-        : "/bookings/payment-result",
-      webUrl,
-    ).toString();
-    const reference = `paymentId=${input.paymentId}&${input.reservationId ? `reservationId=${input.reservationId}` : input.renewalId ? `renewalId=${input.renewalId}` : `bookingId=${input.bookingId}`}`;
+        : "/bookings/payment-result";
+    const resultUrl = new URL(resultPath, webUrl).toString();
+    const referenceTarget = input.reservationId
+      ? `reservationId=${input.reservationId}`
+      : input.renewalId
+        ? `renewalId=${input.renewalId}`
+        : input.debtId
+          ? `debtId=${input.debtId}`
+          : `bookingId=${input.bookingId}`;
+    const reference = `paymentId=${input.paymentId}&${referenceTarget}`;
     const successUrl = `${resultUrl}?status=success&${reference}`;
     const errorUrl = `${resultUrl}?status=error&${reference}`;
     const cancelUrl = `${resultUrl}?status=cancel&${reference}`;
