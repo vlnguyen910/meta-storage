@@ -108,15 +108,6 @@ export function BusinessOperationsShell({ children }: Readonly<BusinessOperation
           <Globe2 size={16} aria-hidden="true" />
           {M.global}
         </span>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
-            <User size={18} aria-hidden="true" />
-          </span>
-          <div className="hidden border-l border-slate-200 pl-3 md:block">
-            <strong className="block text-[11px] text-slate-800">{user?.name}</strong>
-            <span className="block text-[11px] text-slate-500">{M.role}</span>
-          </div>
-        </div>
       </header>
       {logout.isError && (
         <p role="alert" className="m-0 bg-red-50 p-3 text-center text-sm text-red-700">

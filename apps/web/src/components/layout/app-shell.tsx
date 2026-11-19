@@ -2,7 +2,7 @@
 
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Menu, RotateCcw, User } from "lucide-react";
+import { LogOut, Menu, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
@@ -175,12 +175,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           {role === UserRole.STORAGE_CUSTOMER && !isMockMode && (
             <LifecycleInbox key={session.user.id} />
           )}
-          <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
-            <User size={18} aria-hidden="true" />
-          </span>
-          <div className="hidden border-l border-slate-200 pl-3 md:block">
-            <strong className="block text-xs text-slate-800">{session.user.name}</strong>
-          </div>
         </div>
       </header>
 
