@@ -5,10 +5,7 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Coins,
-  FileText,
   History,
   RefreshCw,
   Save,
@@ -30,14 +27,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import { useOperationsPricing } from "../hooks/use-operations-pricing";
 import { OPERATIONS_MESSAGES as M } from "../operations.messages";
 import { type OperationsDepositDraft, OperationsDepositDraftSchema } from "../operations.schema";
 import { formatDateTimeVn, formatMoney } from "../operations.utils";
 import { REPORTING_MESSAGES as R } from "../operations-reporting.messages";
-
-const REFERENCE_BUSINESS_POLICIES = R.policyRules;
 
 export function OperationsRulesView() {
   const { showToast } = useToast();
@@ -54,7 +48,6 @@ export function OperationsRulesView() {
   } = useOperationsPricing();
 
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [showReferencePolicies, setShowReferencePolicies] = useState(false);
   const [baseVersion, setBaseVersion] = useState<number | null>(null);
 
   const depositForm = useForm<OperationsDepositDraft>({
@@ -367,94 +360,6 @@ export function OperationsRulesView() {
           />
         )}
       </section>
-
-      {/* Area 3: Reference Business Policies (Collapsible) */}
-      <Card className="border-slate-200/90 shadow-2xs overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowReferencePolicies((prev) => !prev)}
-          className="flex w-full items-center justify-between p-4 sm:p-5 text-left hover:bg-slate-50/70 transition-colors cursor-pointer select-none"
-          aria-expanded={showReferencePolicies}
-        >
-          <div className="flex items-center gap-3">
-            <div className="grid size-8 place-items-center rounded-lg bg-slate-100 text-slate-600 shrink-0">
-              <FileText className="size-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Chính sách nghiệp vụ tham khảo</h3>
-              <p className="m-0 text-xs text-slate-500">
-                Nội dung tài liệu dự án • Chưa hỗ trợ API cấu hình tự động
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#165f4d]">
-            <span>{showReferencePolicies ? "Thu gọn" : "Xem chi tiết"}</span>
-            {showReferencePolicies ? (
-              <ChevronUp className="size-4" />
-            ) : (
-              <ChevronDown className="size-4" />
-            )}
-          </div>
-        </button>
-
-        {showReferencePolicies && (
-          <div className="border-t border-slate-200 p-4 sm:p-5 pt-4 bg-slate-50/40">
-            <p className="text-xs text-slate-600 mb-3 font-medium">{R.policySource}</p>
-            <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-              <Table>
-                <TableHeader className="bg-slate-50/95 border-b border-slate-200">
-                  <TableRow className="hover:bg-transparent">
-                    {[
-                      "Nhóm quy tắc",
-                      "Tên quy tắc",
-                      "Nội dung quy định",
-                      "Trạng thái nghiệp vụ",
-                    ].map((heading) => (
-                      <TableHead
-                        key={heading}
-                        className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap"
-                      >
-                        {heading}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {REFERENCE_BUSINESS_POLICIES.map((rule) => (
-                    <TableRow
-                      key={rule.name}
-                      className="hover:bg-slate-50/60 transition-colors border-b border-slate-100"
-                    >
-                      <TableCell className="whitespace-nowrap px-4 py-2.5 font-semibold text-slate-600 text-xs">
-                        {rule.group}
-                      </TableCell>
-                      <TableCell className="min-w-40 px-4 py-2.5 font-bold text-slate-900 text-xs">
-                        {rule.name}
-                      </TableCell>
-                      <TableCell className="min-w-64 max-w-xl px-4 py-2.5 text-slate-700 leading-relaxed text-xs">
-                        {rule.value}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap px-4 py-2.5">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-xs font-semibold px-2 py-0.5",
-                            rule.isTbd
-                              ? "bg-amber-50 text-amber-800 border-amber-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200",
-                          )}
-                        >
-                          {rule.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
-      </Card>
     </div>
   );
 }
