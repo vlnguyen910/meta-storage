@@ -1,4 +1,9 @@
 import { createHash, createHmac } from "node:crypto";
+import {
+  FacilityTaskReferenceType,
+  FacilityTaskStatus,
+  FacilityTaskType,
+} from "@metastorage/contracts/facility-tasks";
 import { SYSTEM_SETTING_DEFINITIONS } from "@metastorage/contracts/system-settings";
 import { hashPassword } from "better-auth/crypto";
 import {
@@ -22,10 +27,16 @@ import {
   checkInSlots,
   facilities,
   facilityAssignments,
+  facilityTasks,
   facilityUnitTypes,
+  InspectionCondition,
+  InspectionStatus,
+  InspectionType,
+  inspections,
   PaymentStatus,
   PaymentType,
   payments,
+  policyViolationFees,
   RentalStatus,
   rentals,
   storageUnits,
@@ -267,12 +278,12 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         id: SEED_IDS.demoCheckInSlot,
         name: "Demo check-in ngay",
         startTime,
-        endTime: "23:59:59.999999",
+        endTime: "20:00:00",
         sameDayCheckInEnabled: true,
       })
       .onConflictDoUpdate({
         target: checkInSlots.id,
-        set: { startTime, endTime: "23:59:59.999999", sameDayCheckInEnabled: true },
+        set: { startTime, endTime: "20:00:00", sameDayCheckInEnabled: true },
       });
     if (!existing) {
       const [source] = await tx
@@ -1436,6 +1447,93 @@ async function seedPolicies(seedNow: Date) {
       })),
     )
     .onConflictDoNothing();
+  // Return inspections price violations from this catalog; seed version 1 only when it is empty.
+  const [catalogRow] = await db
+    .select({ id: policyViolationFees.id })
+    .from(policyViolationFees)
+    .where(isNull(policyViolationFees.referenceId))
+    .limit(1);
+  if (!catalogRow)
+    await db.insert(policyViolationFees).values(
+      [
+        { violationCode: "RETURN_CLEANING", violationName: "Vệ sinh ô kho", amount: 150_000 },
+        { violationCode: "LOCK_DAMAGE", violationName: "Hư hỏng khóa / cửa", amount: 500_000 },
+        { violationCode: "UNIT_DAMAGE", violationName: "Hư hỏng kết cấu ô kho", amount: 1_200_000 },
+        { violationCode: "LEFTOVER_ITEMS", violationName: "Dọn đồ khách để lại", amount: 300_000 },
+        { violationCode: "MISSING_FIXTURE", violationName: "Mất đồ dùng có sẵn", amount: 250_000 },
+      ].map((item) => ({ ...item, policyVersion: 1, createdAt: seedNow })),
+    );
+}
+
+/** A passed check-in record per Flow 3 rental, so return inspections can compare against it. */
+async function seedFlow3CheckInRecords() {
+  const [, staff, manager] = SEED_USERS;
+  if (!staff || !manager) throw new Error("Flow 3 staff fixtures are missing");
+  const rows = await db
+    .select({ rental: rentals, facilityId: storageUnits.facilityId })
+    .from(rentals)
+    .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+    .where(inArray(rentals.id, FLOW3_IDS.rentals));
+  for (const { rental, facilityId } of rows) {
+    const ordinal = FLOW3_IDS.rentals.indexOf(rental.id) + 1;
+    const referenceId = rental.reservationId ?? rental.bookingId;
+    if (!referenceId) continue;
+    const inspectedAt = new Date(rental.startAt.getTime() + 10 * 60_000);
+    const doneAt = new Date(rental.startAt.getTime() + 25 * 60_000);
+    const taskId = id("89300000", ordinal);
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(facilityTasks)
+        .values({
+          id: taskId,
+          facilityId,
+          type: FacilityTaskType.CHECK_IN_HANDOVER,
+          status: FacilityTaskStatus.COMPLETED,
+          referenceType: rental.reservationId
+            ? FacilityTaskReferenceType.APPOINTMENT
+            : FacilityTaskReferenceType.BOOKING,
+          referenceId,
+          description: "Bàn giao ô kho cho khách (dữ liệu demo)",
+          assignedStaffId: staff.id,
+          assignedBy: manager.id,
+          assignedAt: rental.startAt,
+          startedAt: inspectedAt,
+          completedAt: doneAt,
+          createdAt: rental.startAt,
+          updatedAt: doneAt,
+        })
+        .onConflictDoNothing();
+      await tx
+        .insert(inspections)
+        .values({
+          id: id("89400000", ordinal),
+          storageUnitId: rental.storageUnitId,
+          ...(rental.reservationId
+            ? { reservationId: rental.reservationId }
+            : { bookingId: rental.bookingId }),
+          inspectedBy: staff.id,
+          taskId,
+          inspectionType: InspectionType.CHECK_IN,
+          status: InspectionStatus.PASSED,
+          condition: InspectionCondition.GOOD,
+          checklist: {
+            results: ["ASSIGNED_UNIT", "DOOR_LOCK", "UNIT_CONDITION", "EXISTING_INVENTORY"].map(
+              (itemCode) => ({
+                itemCode,
+                resultType: "PASS_FAIL",
+                result: "PASS",
+                note: null,
+                photos: [],
+              }),
+            ),
+          },
+          notes: "Ô kho sạch, khóa hoạt động tốt, khách đã kiểm tra và nhận bàn giao.",
+          inspectedAt,
+          inspectDoneAt: doneAt,
+        })
+        .onConflictDoNothing();
+    });
+  }
 }
 
 async function seedAuthAccounts(seedNow: Date) {
@@ -1652,6 +1750,7 @@ async function seed() {
     }
     await seedPolicies(seedNow);
     await seedAuthAccounts(seedNow);
+    await seedFlow3CheckInRecords();
     console.log(
       "Reservation data already exists; preserved workflow history and facility prices; refreshed missing BOM catalog, policies/accounts. Use db:clear for a clean demo reset.",
     );
@@ -2149,6 +2248,7 @@ async function seed() {
   await seedAuthAccounts(seedNow);
   await seedImmediateCheckInSlot(seedNow);
   await db.transaction(migrateBookingsToReservations);
+  await seedFlow3CheckInRecords();
   console.log("✅ Seeding completed successfully!");
   await queryClient.end();
 }

@@ -44,7 +44,7 @@ const slots: CheckInSlotOption[] = [
     id: "e0000000-0000-0000-0000-000000000005",
     name: "Demo check-in ngay",
     startTime: "08:00:00",
-    endTime: "23:59:59.999999",
+    endTime: "20:00:00",
     sameDayCheckInEnabled: true,
   },
 ];
