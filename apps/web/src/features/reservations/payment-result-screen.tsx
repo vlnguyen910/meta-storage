@@ -1,5 +1,6 @@
 "use client";
 import { createMobilePaymentReturn } from "@metastorage/shared";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -94,6 +95,7 @@ export function PaymentResultScreen() {
                     : m.pending;
   const blockingPaymentCheck = canRead && query.isFetching && !query.data;
   const isCustomer = pathname?.startsWith("/customer/");
+  const isPending = message === m.pending;
 
   const content = (
     <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
@@ -121,6 +123,54 @@ export function PaymentResultScreen() {
             reservationId={confirmedId}
             variant="confirmation"
           />
+        ) : isPending ? (
+          <section className="grid gap-5 rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-10 shadow-xs max-w-xl mx-auto text-center">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{m.title}</h1>
+
+            <div className="relative my-2 flex items-center justify-center">
+              <span className="absolute inline-flex size-24 animate-ping rounded-full bg-emerald-500/15" />
+              <div className="relative flex size-20 items-center justify-center rounded-full bg-emerald-50 border border-emerald-200/80 shadow-xs">
+                <Loader2 className="size-9 animate-spin text-[#165f4d]" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-base font-semibold text-slate-800">{m.processingTitle}</h2>
+              <div>
+                <span
+                  role="status"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                >
+                  <span className="size-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  {m.pending}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 my-0.5">
+              <span className="size-1.5 rounded-full bg-[#165f4d] animate-bounce [animation-delay:-0.3s]" />
+              <span className="size-1.5 rounded-full bg-[#165f4d] animate-bounce [animation-delay:-0.15s]" />
+              <span className="size-1.5 rounded-full bg-[#165f4d] animate-bounce" />
+            </div>
+
+            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+              {m.pendingHint}
+            </p>
+
+            {canRead && (
+              <div className="pt-2">
+                <button
+                  className="inline-flex items-center justify-center gap-2 h-10 rounded-xl bg-[#165f4d] hover:bg-[#0f493b] px-5 text-xs font-bold text-white transition-all shadow-xs hover:shadow cursor-pointer disabled:opacity-60"
+                  type="button"
+                  disabled={query.isFetching}
+                  onClick={() => query.refetch()}
+                >
+                  {query.isFetching && <Loader2 className="size-3.5 animate-spin" />}
+                  <span>{m.retry}</span>
+                </button>
+              </div>
+            )}
+          </section>
         ) : (
           <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-xs max-w-xl mx-auto">
             <h1 className="text-xl font-bold text-slate-900">{m.title}</h1>

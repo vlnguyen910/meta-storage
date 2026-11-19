@@ -1,5 +1,6 @@
 export const paymentResultMessages = {
   title: "Kết quả thanh toán",
+  processingTitle: "Đang xử lý kết quả thanh toán",
   viewOnWeb: "Xem kết quả trên web",
   openInApp: "Mở trong ứng dụng",
   manualAppReturnHint:
