@@ -14,7 +14,6 @@ import type { StaffSelection, StaffWorkFilters } from "../../common/staff-api.ty
 import { filterStaffWork } from "../../common/staff-work.utils";
 import { api } from "../../lib/api";
 import { pickImages } from "../../lib/pick-image";
-import { customerCommandId } from "../customer-api/customer-native";
 import { onStaffTaskAssigned } from "../realtime/staff-assignment-events";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 
@@ -410,9 +409,13 @@ export function useStaffUnitInspection(owner: string, task: FacilityTaskDetail) 
  * Fees left after a finalized return. Staff collects the full remaining amount in cash, or opens
  * SePay so the customer can scan the QR and transfer it.
  */
+// Kept free of React Native imports: the web test suite loads this module.
+const receiptKey = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
 export function useStaffReturnDebt(owner: string, rentalId: string) {
   // Reused when a receipt is retried, so an uncertain first attempt is never recorded twice.
-  const [idempotencyKey, setIdempotencyKey] = useState(customerCommandId);
+  const [idempotencyKey, setIdempotencyKey] = useState(receiptKey);
   const [session, setSession] = useState<PaymentPendingResponse | null>(null),
     [awaiting, setAwaiting] = useState(false);
   const debts = useQuery({
@@ -430,7 +433,7 @@ export function useStaffReturnDebt(owner: string, rentalId: string) {
         idempotencyKey,
       }),
     onSuccess: async () => {
-      setIdempotencyKey(customerCommandId());
+      setIdempotencyKey(receiptKey());
       await debts.refetch();
     },
   });
