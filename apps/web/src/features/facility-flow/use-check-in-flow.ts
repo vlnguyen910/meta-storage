@@ -29,14 +29,23 @@ import { FLOW } from "./flow.messages";
 import { appointmentItem } from "./use-dispatch";
 
 export function flowError(error: unknown) {
-  return axios.isAxiosError(error)
-    ? ((error.response?.data as { error?: { message?: string }; message?: string })?.error
-        ?.message ??
-        error.response?.data?.message ??
-        FLOW.error)
-    : error instanceof Error
-      ? error.message
-      : FLOW.error;
+  if (axios.isAxiosError(error)) {
+    if (error.response?.status === 413) {
+      return "Dung lượng ảnh tải lên vượt quá giới hạn cho phép. Vui lòng chọn ảnh có dung lượng nhỏ hơn.";
+    }
+    const data = error.response?.data as
+      | { error?: { message?: string }; message?: string }
+      | undefined;
+    const msg = data?.error?.message ?? data?.message;
+    if (msg) {
+      if (msg.includes("Request body is too large") || msg.includes("too large")) {
+        return "Dung lượng ảnh tải lên vượt quá giới hạn cho phép. Vui lòng chọn ảnh có dung lượng nhỏ hơn.";
+      }
+      return msg;
+    }
+    return FLOW.error;
+  }
+  return error instanceof Error ? error.message : FLOW.error;
 }
 
 function normalizeLookup(value: string) {

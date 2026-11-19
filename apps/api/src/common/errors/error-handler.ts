@@ -69,6 +69,19 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
       error.statusCode >= 400 &&
       error.statusCode < 500
     ) {
+      if (
+        error.statusCode === 413 ||
+        ("code" in error && error.code === "FST_ERR_CTP_BODY_TOO_LARGE") ||
+        error.message?.includes("Request body is too large")
+      ) {
+        return reply.status(413).send(
+          errorResponse({
+            code: 413,
+            message:
+              "Dung lượng dữ liệu tải lên vượt quá giới hạn cho phép của hệ thống. Vui lòng chọn ảnh có dung lượng nhỏ hơn.",
+          }),
+        );
+      }
       return reply.status(error.statusCode).send(
         errorResponse({
           code: error.statusCode,

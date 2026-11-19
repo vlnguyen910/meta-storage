@@ -42,6 +42,7 @@ export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: loggerConfig,
     trustProxy: env.TRUSTED_PROXY_CIDRS,
+    bodyLimit: 100 * 1024 * 1024,
   });
 
   // Zod Type Provider compilers
