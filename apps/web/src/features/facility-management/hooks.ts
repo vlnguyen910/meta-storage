@@ -26,12 +26,12 @@ import { api } from "@/lib/api";
 import { F5 } from "./management.messages";
 import type { FacilityOption } from "./management.types";
 
-export function managementError(error: unknown) {
+export function managementError(error: unknown, fallback: string = F5.saveError) {
   if (isAxiosError(error)) {
     const message = error.response?.data?.error?.message;
     if (typeof message === "string") return message;
   }
-  return F5.saveError;
+  return fallback;
 }
 
 async function allPages<T>(load: (offset: number) => Promise<T[]>) {

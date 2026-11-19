@@ -15,12 +15,12 @@ import {
 import { formatReference } from "@metastorage/shared";
 import { Layers, Pencil, Plus, Search, UserMinus, UserPlus, Warehouse } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Input } from "@/components/ui/form-controls";
+import { Input, VndInput } from "@/components/ui/form-controls";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { Switch } from "@/components/ui/switch";
@@ -1126,12 +1126,18 @@ function OfferingEditor({
             label={F5.localPrice}
             error={form.formState.errors.monthlyPrice ? F5.invalidLocalPrice : undefined}
           >
-            <Input
-              type="number"
-              min={min ?? 1}
-              max={max}
-              step="1"
-              {...form.register("monthlyPrice", { valueAsNumber: true })}
+            <Controller
+              control={form.control}
+              name="monthlyPrice"
+              render={({ field }) => (
+                <VndInput
+                  ref={field.ref}
+                  name={field.name}
+                  onBlur={field.onBlur}
+                  value={field.value}
+                  onValueChange={(value) => field.onChange(value ?? Number.NaN)}
+                />
+              )}
             />
           </ManagementField>
           {offering && (

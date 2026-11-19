@@ -34,6 +34,7 @@ import { StatusBadge } from "@/components/ui/display";
 import { OperationalBackLink } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
+import { managementError } from "@/features/facility-management/hooks";
 import { BookingSchedulePicker } from "@/features/reservations/booking-schedule-picker";
 import { toLocalDateTimeInput } from "@/features/reservations/checkout-validation";
 import { api } from "@/lib/api";
@@ -154,7 +155,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
       </div>
       {cancelReturn.isError && (
         <p role="alert" className="text-right text-sm text-danger">
-          {M.returnCancelError}
+          {managementError(cancelReturn.error, M.returnCancelError)}
         </p>
       )}
 

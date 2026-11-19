@@ -4,9 +4,10 @@ import { FacilityStatus } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import { Controller } from "react-hook-form";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { FieldShell, Input } from "@/components/ui/form-controls";
+import { FieldShell, Input, VndInput } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { businessOperationsRoutes as routes } from "@/config/routes";
@@ -313,12 +314,19 @@ function MockOperationsWorkspace({ section }: Readonly<OperationsWorkspaceProps>
               label={M.newPrice}
               error={workspace.priceForm.formState.errors.monthlyPrice?.message}
             >
-              <Input
-                type="number"
-                min={0}
-                step="any"
-                {...workspace.priceForm.register("monthlyPrice", { valueAsNumber: true })}
-                autoFocus
+              <Controller
+                control={workspace.priceForm.control}
+                name="monthlyPrice"
+                render={({ field }) => (
+                  <VndInput
+                    ref={field.ref}
+                    name={field.name}
+                    onBlur={field.onBlur}
+                    value={field.value}
+                    onValueChange={(value) => field.onChange(value ?? Number.NaN)}
+                    autoFocus
+                  />
+                )}
               />
             </FieldShell>
             <div className="mt-2 flex flex-wrap justify-end gap-3">
