@@ -148,6 +148,7 @@ export function useAssignStaffMutation() {
         queryClient.invalidateQueries({ queryKey: ["appointments"] }),
         queryClient.invalidateQueries({ queryKey: ["flow5"] }),
         queryClient.invalidateQueries({ queryKey: ["facility-tasks"] }),
+        queryClient.invalidateQueries({ queryKey: ["facility-support-tickets"] }),
         queryClient.invalidateQueries({ queryKey: ["manager-tabs"] }),
         queryClient.invalidateQueries({ queryKey: ["support"] }),
         queryClient.invalidateQueries({ queryKey: ["support-detail"] }),

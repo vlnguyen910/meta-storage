@@ -11,6 +11,7 @@ import {
   type PolicyViolationFee,
   ReturnChecklistCompletionSchema,
 } from "@metastorage/contracts";
+import { formatReference } from "@metastorage/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
@@ -20,6 +21,10 @@ import {
   Camera,
   CheckCircle2,
   ClipboardCheck,
+  FileText,
+  Headset,
+  Mail,
+  Phone,
   UserRound,
   Warehouse,
 } from "lucide-react";
@@ -63,6 +68,12 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   const update = useUpdateTask(taskId);
   const client = useQueryClient();
   const task = query.data;
+  const isSupportTask = task?.type === "HANDLE_SUPPORT" || task?.referenceType === "SUPPORT_TICKET";
+  const supportTicket = useQuery({
+    queryKey: ["staff-support-ticket", task?.facilityId, task?.referenceId],
+    queryFn: () => api.support.facilityDetail(task?.facilityId ?? "", task?.referenceId ?? ""),
+    enabled: Boolean(isSupportTask && task?.facilityId && task?.referenceId),
+  });
   const isReturnTask =
     task?.referenceType === "APPOINTMENT" &&
     (task.type === "RETURN_INSPECTION" || task.type === "UNIT_INSPECTION");
@@ -307,17 +318,39 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-primary">
-              <ClipboardCheck size={24} aria-hidden="true" />
+            <span
+              className={cn(
+                "grid size-12 shrink-0 place-items-center rounded-2xl",
+                isSupportTask
+                  ? "border border-amber-200 bg-amber-50 text-amber-700"
+                  : "bg-emerald-50 text-primary",
+              )}
+            >
+              {isSupportTask ? (
+                <Headset size={24} aria-hidden="true" />
+              ) : (
+                <ClipboardCheck size={24} aria-hidden="true" />
+              )}
             </span>
             <div className="min-w-0">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-700">
-                {returnRecord ? M.returnWorkspace : M.facilityTasksTitle}
+              <p
+                className={cn(
+                  "mb-1 text-xs font-semibold uppercase tracking-wider",
+                  isSupportTask ? "text-amber-700" : "text-emerald-700",
+                )}
+              >
+                {isSupportTask
+                  ? M.supportTasksTitle
+                  : returnRecord
+                    ? M.returnWorkspace
+                    : M.facilityTasksTitle}
               </p>
               <h1 className="text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
-                {returnRecord
-                  ? `${M.returnTitle}${record?.unitCode ? ` · ${record.unitCode}` : ""}`
-                  : currentTask.description || M.inspect}
+                {isSupportTask
+                  ? (supportTicket.data?.subject ?? currentTask.description ?? M.supportTasksTitle)
+                  : returnRecord
+                    ? `${M.returnTitle}${record?.unitCode ? ` · ${record.unitCode}` : ""}`
+                    : currentTask.description || M.inspect}
               </h1>
               <p className="mt-2 text-xs text-slate-500">
                 {M.assignedTime}: {formatDateTime(currentTask.assignedAt)}
@@ -373,8 +406,115 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
             </div>
           </dl>
         )}
-        <div className="flex flex-wrap gap-2 px-5 pb-4 sm:px-6">
-          {!returnRecord && currentTask.status === "ASSIGNED" && (
+        {isSupportTask && supportTicket.data && (
+          <dl className="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 text-sm sm:grid-cols-3 sm:px-6">
+            <div className="flex items-start gap-2.5">
+              <UserRound className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+              <div>
+                <dt className="text-xs text-slate-500">{M.supportCustomerInfo}</dt>
+                <dd className="mt-1 font-semibold text-slate-900">
+                  {supportTicket.data.customer.name}
+                </dd>
+                {supportTicket.data.customer.phone && (
+                  <dd className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
+                    <Phone size={12} className="text-slate-400 shrink-0" aria-hidden="true" />
+                    <a
+                      href={`tel:${supportTicket.data.customer.phone}`}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {supportTicket.data.customer.phone}
+                    </a>
+                  </dd>
+                )}
+                {supportTicket.data.customer.email && (
+                  <dd className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                    <Mail size={12} className="text-slate-400 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{supportTicket.data.customer.email}</span>
+                  </dd>
+                )}
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <FileText className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+              <div>
+                <dt className="text-xs text-slate-500">{M.supportTicketCode}</dt>
+                <dd className="mt-1 font-mono font-semibold text-slate-900">
+                  {formatReference(supportTicket.data.id, "YC")}
+                </dd>
+                <dd className="mt-1 text-xs text-slate-500">
+                  {M.supportCategory}: {supportTicket.data.category}
+                </dd>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <Warehouse className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+              <div>
+                <dt className="text-xs text-slate-500">{M.unit}</dt>
+                <dd className="mt-1 font-semibold text-slate-900">
+                  {supportTicket.data.unitCode ?? M.supportNoUnit}
+                </dd>
+                {supportTicket.data.actionDueAt && (
+                  <dd className="mt-1 text-xs text-slate-500">
+                    {M.supportActionDue}: {formatDateTime(supportTicket.data.actionDueAt)}
+                  </dd>
+                )}
+              </div>
+            </div>
+          </dl>
+        )}
+        <div className="flex flex-wrap items-center gap-2 px-5 pb-4 sm:px-6">
+          {isSupportTask && currentTask.status === "ASSIGNED" && (
+            <Button
+              disabled={update.isPending}
+              loading={update.isPending}
+              onClick={() =>
+                update.mutate(
+                  { status: FacilityTaskStatus.IN_PROGRESS },
+                  {
+                    onSuccess: () => {
+                      showToast(M.updated, "success");
+                      void client.invalidateQueries({ queryKey: ["staff-support-ticket"] });
+                      void client.invalidateQueries({ queryKey: ["facility-support-tickets"] });
+                      void client.invalidateQueries({ queryKey: ["facility-tasks"] });
+                    },
+                  },
+                )
+              }
+            >
+              {M.supportStart}
+            </Button>
+          )}
+          {isSupportTask && currentTask.status === "IN_PROGRESS" && (
+            <Button
+              disabled={update.isPending}
+              loading={update.isPending}
+              onClick={() =>
+                update.mutate(
+                  { status: FacilityTaskStatus.COMPLETED },
+                  {
+                    onSuccess: () => {
+                      showToast(M.complete, "success");
+                      void client.invalidateQueries({ queryKey: ["staff-support-ticket"] });
+                      void client.invalidateQueries({ queryKey: ["facility-support-tickets"] });
+                      void client.invalidateQueries({ queryKey: ["facility-tasks"] });
+                    },
+                  },
+                )
+              }
+            >
+              {M.supportComplete}
+            </Button>
+          )}
+          {isSupportTask && currentTask.status === "COMPLETED" && (
+            <p
+              role="status"
+              className="flex items-center gap-2 text-sm font-semibold text-emerald-800"
+            >
+              <CheckCircle2 size={18} />
+              {M.supportCompletedStatus}
+            </p>
+          )}
+          {!isSupportTask && !returnRecord && currentTask.status === "ASSIGNED" && (
             <Button
               disabled={update.isPending}
               loading={update.isPending}
@@ -388,7 +528,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
               {M.openTask}
             </Button>
           )}
-          {!returnRecord && currentTask.status === "IN_PROGRESS" && (
+          {!isSupportTask && !returnRecord && currentTask.status === "IN_PROGRESS" && (
             <Button
               disabled={update.isPending}
               loading={update.isPending}
@@ -402,10 +542,29 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
               {M.complete}
             </Button>
           )}
-          {!isReturnTask && update.isError && <p role="alert">{managementError(update.error)}</p>}
-          {update.isSuccess && <p role="status">{M.complete}</p>}
+          {update.isError && (
+            <p role="alert" className="text-sm text-danger">
+              {managementError(update.error)}
+            </p>
+          )}
         </div>
       </section>
+      {isSupportTask && (
+        <section className="space-y-4">
+          <Card className="space-y-4 rounded-2xl border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+            <h2 className="text-base font-bold text-slate-900">{M.supportContent}</h2>
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm whitespace-pre-wrap text-slate-800">
+              {supportTicket.data?.description || M.supportNoContent}
+            </div>
+            {currentTask.description && currentTask.description !== supportTicket.data?.subject && (
+              <div className="rounded-xl border border-amber-200/50 bg-amber-50/50 p-4 text-sm text-amber-950">
+                <p className="mb-1 font-semibold text-amber-900">{M.supportManagerNote}</p>
+                <p className="whitespace-pre-wrap">{currentTask.description}</p>
+              </div>
+            )}
+          </Card>
+        </section>
+      )}
       {returnRecord && (
         <section className="space-y-5">
           {history.isError ? (

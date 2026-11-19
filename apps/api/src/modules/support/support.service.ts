@@ -10,7 +10,7 @@ import {
   type SupportTicketPage,
   type SupportTicketQuery,
 } from "@metastorage/contracts";
-import type { SupportTicketRow } from "@metastorage/database";
+import type { Role, SupportTicketRow } from "@metastorage/database";
 import {
   ConflictError,
   ForbiddenError,
@@ -33,11 +33,20 @@ export class SupportService {
     ),
   ) {}
 
-  private async requireManager(actorId: string, facilityId: string) {
+  private async requireFacilityMember(
+    actor: string | { id: string; role?: Role | null },
+    facilityId: string,
+  ) {
+    const actorId = typeof actor === "string" ? actor : actor.id;
+    const actorRole = typeof actor === "object" && actor.role ? actor.role : "FACILITY_MANAGER";
     await this.assignments.requireFacilityAccess(
       facilityId,
-      { kind: "assigned", userId: actorId, role: "FACILITY_MANAGER" },
-      ["FACILITY_MANAGER"],
+      {
+        kind: "assigned",
+        userId: actorId,
+        role: actorRole as "FACILITY_MANAGER" | "FACILITY_STAFF",
+      },
+      ["FACILITY_MANAGER", "FACILITY_STAFF"],
     );
   }
 
@@ -54,11 +63,11 @@ export class SupportService {
   }
 
   async facilityList(
-    actorId: string,
+    actor: string | { id: string; role?: Role | null },
     facilityId: string,
     input: FacilitySupportTicketQuery,
   ): Promise<FacilitySupportPage> {
-    await this.requireManager(actorId, facilityId);
+    await this.requireFacilityMember(actor, facilityId);
     const rows = await this.repository.facilityList(facilityId, input, this.cursor(input.cursor));
     return {
       items: rows.slice(0, input.limit).map((row) => this.mapFacilityTicket(row)),
@@ -70,11 +79,11 @@ export class SupportService {
   }
 
   async facilityDetail(
-    actorId: string,
+    actor: string | { id: string; role?: Role | null },
     facilityId: string,
     ticketId: string,
   ): Promise<FacilitySupportTicket> {
-    await this.requireManager(actorId, facilityId);
+    await this.requireFacilityMember(actor, facilityId);
     const [row] = await this.repository.facilityList(facilityId, { limit: 1 }, undefined, ticketId);
     if (!row) throw new NotFoundError(m.notFound);
     return this.mapFacilityTicket(row);

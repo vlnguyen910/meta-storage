@@ -8,7 +8,7 @@ import { useAuthStore } from "@/features/auth/auth-store";
 import { bookingKeys } from "@/features/check-in/booking.keys";
 import { useManagementKey } from "@/features/facility-management/hooks";
 import { api } from "@/lib/api";
-import { facilityWork } from "./staff-work.data";
+import { facilityWork, supportWork } from "./staff-work.data";
 import { STAFF_WORK as M } from "./staff-work.messages";
 import type { StaffWorkFilters } from "./staff-work.types";
 
@@ -36,7 +36,14 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
     enabled: Boolean(facilityId && actorId) && !isMockMode,
     refetchInterval: 30_000,
   });
-  const queries = [bookings, ...(!isMockMode ? [tasks] : [])];
+  const supportTickets = useQuery({
+    queryKey: ["facility-support-tickets", facilityId],
+    queryFn: () =>
+      api.support.facilityList(facilityId, { limit: 100 }).catch(() => ({ items: [] })),
+    enabled: Boolean(facilityId && actorId) && !isMockMode,
+    refetchInterval: 30_000,
+  });
+  const queries = [bookings, ...(!isMockMode ? [tasks, supportTickets] : [])];
   const allItems = [
     ...(bookings.data ?? [])
       .filter(
@@ -91,7 +98,13 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
               task.facilityId === facilityId &&
               task.referenceType !== "APPOINTMENT",
           )
-          .map(facilityWork)
+          .map((task) => {
+            if (task.referenceType === "SUPPORT_TICKET" || task.type === "HANDLE_SUPPORT") {
+              const ticket = supportTickets.data?.items.find((tk) => tk.id === task.referenceId);
+              return supportWork(task, ticket);
+            }
+            return facilityWork(task);
+          })
       : []),
   ];
   const typeCount = (selectedKind: StaffWorkFilters["kind"]) =>

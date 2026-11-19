@@ -13,6 +13,7 @@ import {
   SupportTicketParamsSchema,
   SupportTicketQuerySchema,
 } from "@metastorage/contracts";
+import { UserRole } from "@metastorage/database/schema/user-enums";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -47,7 +48,7 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
   typed.get(
     "/facilities/:facilityId/tickets",
     {
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER, UserRole.FACILITY_STAFF)],
       schema: {
         ...schema,
         summary: m.facilityListSummary,
@@ -57,12 +58,14 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
       },
     },
     async (req) =>
-      successResponse(await service.facilityList(actor(req), req.params.facilityId, req.query)),
+      successResponse(
+        await service.facilityList(req.user ?? actor(req), req.params.facilityId, req.query),
+      ),
   );
   typed.get(
     "/facilities/:facilityId/tickets/:ticketId",
     {
-      preHandler: [requireRole("FACILITY_MANAGER")],
+      preHandler: [requireRole(UserRole.FACILITY_MANAGER, UserRole.FACILITY_STAFF)],
       schema: {
         ...schema,
         summary: m.facilityDetailSummary,
@@ -72,7 +75,11 @@ export const supportRoutes: FastifyPluginAsync<SupportRoutesOptions> = async (ap
     },
     async (req) =>
       successResponse(
-        await service.facilityDetail(actor(req), req.params.facilityId, req.params.ticketId),
+        await service.facilityDetail(
+          req.user ?? actor(req),
+          req.params.facilityId,
+          req.params.ticketId,
+        ),
       ),
   );
   typed.get(
