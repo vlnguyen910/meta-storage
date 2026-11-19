@@ -191,6 +191,11 @@ export function FacilityBookingsView({
                 label: M.completedAppointmentType,
                 dot: "bg-teal-500",
               },
+              {
+                id: "CANCELLED",
+                label: M.cancelledOrNoShowAppointmentType,
+                dot: "bg-rose-500",
+              },
             ].map((typeItem) => {
               const active = d.typeFilter === typeItem.id;
               const count = d.typeCount(typeItem.id as DispatchFilterTab);

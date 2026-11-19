@@ -6,4 +6,5 @@ export const FACILITY_BOOKINGS_MESSAGES = {
   supportAppointmentType: "Lịch hỗ trợ",
   supportCustomerType: "Hỗ trợ khách hàng",
   completedAppointmentType: "Đã hoàn tất",
+  cancelledOrNoShowAppointmentType: "Đã hủy / Vắng hẹn",
 } as const;
