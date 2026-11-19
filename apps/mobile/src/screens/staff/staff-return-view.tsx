@@ -9,15 +9,30 @@ import {
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { Banknote, Check } from "lucide-react-native";
+import { Banknote, Check, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
+import { IconButton, ScreenFrame } from "../../components/ui";
 import { Icon } from "../../components/ui/icon";
 import { MobilePhoto } from "../../components/ui/mobile-photo";
-import { Button, Card, dateTime, Field, Heading, Notice, Row } from "../../components/ui/mobile-ui";
+import {
+  Button,
+  Card,
+  dateTime,
+  Field,
+  Heading,
+  money,
+  Notice,
+  Row,
+} from "../../components/ui/mobile-ui";
 import { StatusPill } from "../../components/ui/workspace-ui";
+import { PaymentGateway } from "../../features/booking/components/payment-gateway";
 import { STAFF_API_UI as M } from "../../features/staff-api/staff-api.messages";
-import { staffError, useStaffReturn } from "../../features/staff-api/use-staff-workspace";
+import {
+  staffError,
+  useStaffReturn,
+  useStaffReturnDebt,
+} from "../../features/staff-api/use-staff-workspace";
 
 type Violation = { code: string; note: string };
 type Condition = NonNullable<InspectionRecord["condition"]>;
@@ -516,14 +531,153 @@ export function StaffReturnView({
               />
             </Card>
           ) : (
-            <Card>
-              <Notice>{M.returnFinalized}</Notice>
-              {onBack ? <Button variant="outline" label={M.back} onPress={onBack} /> : null}
-            </Card>
+            <>
+              {record.rentalId ? (
+                <StaffReturnDebt owner={owner} rentalId={record.rentalId} onNotify={onNotify} />
+              ) : null}
+              <Card>
+                <Notice>{M.returnFinalized}</Notice>
+                {onBack ? <Button variant="outline" label={M.back} onPress={onBack} /> : null}
+              </Card>
+            </>
           )}
         </>
       )}
     </View>
+  );
+}
+
+function StaffReturnDebt({
+  owner,
+  rentalId,
+  onNotify,
+}: {
+  owner: string;
+  rentalId: string;
+  onNotify: (kind: "success" | "error", message: string) => void;
+}) {
+  const { debts, collect, sepay, session, awaiting, closeGateway } = useStaffReturnDebt(
+    owner,
+    rentalId,
+  );
+  const [method, setMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
+  if (debts.isPending) return <ActivityIndicator className="my-3" />;
+  if (debts.isError)
+    return (
+      <Card>
+        <Notice error>{M.feesError}</Notice>
+        <Button variant="outline" label={M.retry} onPress={() => void debts.refetch()} />
+      </Card>
+    );
+  const url = session?.checkoutUrl,
+    fields = session?.checkoutFormFields;
+  return (
+    <>
+      {debts.data.items.map((debt) => {
+        const remaining = Number(debt.remainingAmount);
+        return (
+          <Card key={debt.id}>
+            <View className="mb-3 flex-row items-center justify-between gap-2">
+              <Text className="font-body-bold text-body text-ink">{M.fees}</Text>
+              <StatusPill
+                label={M.feeStatuses[debt.status]}
+                tone={
+                  debt.status === "PAID"
+                    ? "green"
+                    : debt.status === "PARTIALLY_PAID"
+                      ? "amber"
+                      : "red"
+                }
+              />
+            </View>
+            <View className="mb-3 flex-row gap-2">
+              {[
+                { label: M.feeOriginal, value: debt.originalAmount, tone: "text-ink" },
+                { label: M.feePaid, value: debt.paidAmount, tone: "text-success" },
+                { label: M.feeRemaining, value: debt.remainingAmount, tone: "text-danger-strong" },
+              ].map((item) => (
+                <View
+                  key={item.label}
+                  className="flex-1 rounded-lg border border-outline-variant bg-surface p-2"
+                >
+                  <Text className="font-body-medium text-[11px] text-muted">{item.label}</Text>
+                  <Text className={`mt-1 font-body-bold text-[13px] ${item.tone}`}>
+                    {money(item.value)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {remaining > 0 ? (
+              <>
+                <Text className="mb-2 font-body-medium text-[12px] text-muted">{M.feeMethod}</Text>
+                <View className="mb-3 flex-row gap-2">
+                  {(["CASH", "BANK_TRANSFER"] as const).map((value) => (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: method === value }}
+                      disabled={collect.isPending || sepay.isPending}
+                      onPress={() => setMethod(value)}
+                      className={`min-h-11 flex-1 items-center justify-center rounded-lg border px-3 ${method === value ? "border-primary bg-primary-soft" : "border-outline-variant bg-surface"}`}
+                    >
+                      <Text className="font-body-medium text-[12px] text-ink">
+                        {value === "CASH" ? M.feeCash : M.feeTransfer}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {method === "BANK_TRANSFER" ? (
+                  <Notice>{awaiting ? M.feeAwaiting : M.feeSepayHint}</Notice>
+                ) : null}
+                <Button
+                  label={
+                    method === "CASH"
+                      ? `${M.feeCollect} · ${money(remaining)}`
+                      : `${M.feeSepay} · ${money(remaining)}`
+                  }
+                  loading={collect.isPending || sepay.isPending}
+                  disabled={collect.isPending || sepay.isPending}
+                  onPress={() =>
+                    method === "CASH"
+                      ? collect.mutate(debt, {
+                          onSuccess: () => onNotify("success", M.feeCollected),
+                          onError: (error) => onNotify("error", staffError(error)),
+                        })
+                      : sepay.mutate(debt.id, {
+                          onError: (error) => onNotify("error", staffError(error)),
+                        })
+                  }
+                />
+              </>
+            ) : (
+              <Notice>{M.feePaidInFull}</Notice>
+            )}
+          </Card>
+        );
+      })}
+      <Modal visible={Boolean(url && fields)} animationType="slide" onRequestClose={closeGateway}>
+        <ScreenFrame>
+          <View className="flex-row items-center justify-between px-4 py-2">
+            <Text accessibilityRole="header" className="flex-1 font-body-bold text-body text-ink">
+              {M.feeGatewayTitle}
+            </Text>
+            <IconButton icon={X} label={M.feeClose} onPress={closeGateway} />
+          </View>
+          {url && fields ? (
+            <PaymentGateway
+              url={url}
+              fields={fields}
+              onReturn={closeGateway}
+              onCheck={() => void debts.refetch()}
+              onError={() => {
+                closeGateway();
+                onNotify("error", M.feeGatewayError);
+              }}
+            />
+          ) : null}
+        </ScreenFrame>
+      </Modal>
+    </>
   );
 }
 
