@@ -1,7 +1,6 @@
 "use client";
 import { formatReference } from "@metastorage/shared";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
@@ -26,7 +25,6 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { customerRoutes } from "@/config/routes";
 import { customerApiError } from "@/features/bookings/customer-error";
 import { formatDateTime } from "@/lib/format";
-import { checkoutMessages } from "./checkout.messages";
 import { CheckoutConfirmation } from "./checkout-confirmation";
 import { useReservationRecord } from "./reservation.hooks";
 import { RESERVATION_UI as m } from "./reservation.messages";
@@ -43,25 +41,6 @@ export function ReservationReceipt({
   const state = useReservationRecord(reservationId);
   const attempted = useRef(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (variant !== "confirmation") return;
-    let active = true;
-    const url = new URL(
-      customerRoutes.reservation(reservationId),
-      window.location.origin,
-    ).toString();
-    QRCode.toDataURL(url, { width: 320, margin: 1 })
-      .then((value) => {
-        if (active) setQrDataUrl(value);
-      })
-      .catch(() => {
-        if (active) setQrDataUrl(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [reservationId, variant]);
   const [slotId, setSlotId] = useState("");
   const { record, appointment, createAppointment } = state;
   const suggestedSlot =
@@ -160,7 +139,6 @@ export function ReservationReceipt({
             sizeLabel: record.unitType?.sizeLabel ?? "",
             durationMonths: record.requestedMonths,
           },
-          qrDataUrl,
           paidPricing: {
             monthlyRateSnapshot: String(record.monthlyRateSnapshot),
             rentalFeeAmount: String(record.rentalFeeAmount),
@@ -172,7 +150,6 @@ export function ReservationReceipt({
           },
           contact: { phone: appointment?.contactPhone ?? undefined },
         }}
-        qrHint={checkoutMessages.reservationQrHint}
       >
         {appointmentContent && (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">

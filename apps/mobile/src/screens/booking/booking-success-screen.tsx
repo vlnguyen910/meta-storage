@@ -3,11 +3,9 @@ import { Text, View } from "react-native";
 import type { BookingSuccessScreenProps } from "../../common/booking.types";
 import { appointmentTime, formatAppointmentDate } from "../../common/customer-home.utils";
 import { Button, Card, Icon, IconButton, Row, SectionHeading } from "../../components/ui";
-import { BookingQr } from "../../components/ui/booking-qr";
 import { dateTime, money } from "../../components/ui/mobile-ui";
 import { BOOKING as M } from "../../features/booking/booking.messages";
 import { BookingSummary } from "../../features/booking/components/booking-parts";
-import { WEB_BASE_URL } from "../../lib/runtime-config";
 
 export function BookingSuccessScreen({
   state: s,
@@ -49,10 +47,6 @@ export function BookingSuccessScreen({
             onPress={() => void s.copy(s.draft?.id ?? "")}
           />
         </View>
-        <BookingQr
-          value={new URL(`/customer/reservations/${s.draft.id}`, WEB_BASE_URL).toString()}
-          label={M.lookupQr}
-        />
         <Text className="text-center font-body text-[12px] leading-5 text-muted">
           {M.lookupHint}
         </Text>

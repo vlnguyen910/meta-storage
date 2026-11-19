@@ -28,7 +28,7 @@ export const CUSTOMER_DASHBOARD_MESSAGES = {
   activeRentalsLink: "Xem chi tiết kho",
   bookingsTitle: "Đơn đặt kho",
   bookingsUnit: "lịch hẹn nhận kho",
-  bookingsLink: "Xem mã QR nhận kho",
+  bookingsLink: "Xem đơn đặt kho",
   facilitiesTitle: "Hệ thống cơ sở",
   facilitiesSubtitle: "Tìm kho gần bạn",
   facilitiesLink: "Khám phá cơ sở",

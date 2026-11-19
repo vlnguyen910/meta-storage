@@ -20,7 +20,7 @@ export const checkoutMessages = {
 
   mockPayment: "Thanh toán mô phỏng",
   mockPaymentDescription: "Thử luồng đặt kho; không thu tiền và không gọi SePay.",
-  mockEmail: "Chế độ mock không gửi email. Hãy lưu mã booking và QR để thử check-in.",
+  mockEmail: "Chế độ mock không gửi email. Hãy lưu mã booking để đối chiếu khi check-in.",
   steps: ["Loại kho", "Thông tin thuê", "Xem đơn thuê", "Thanh toán", "Hoàn tất"],
   backToFacilities: "Về trang tìm kho",
   brand: "MetaStorage",
@@ -126,7 +126,7 @@ export const checkoutMessages = {
   openGateway: "Mở cổng thanh toán SePay",
   waitingPayment: "Đang chờ xác nhận thanh toán",
   waitingHint:
-    "Hệ thống tự cập nhật sau khi nhận kết quả thanh toán từ SePay. Chưa có Booking ID hoặc QR nhận kho ở bước này.",
+    "Hệ thống tự cập nhật sau khi nhận kết quả thanh toán từ SePay. Chưa có Booking ID ở bước này.",
   paymentCode: "Mã thanh toán",
   bankName: "Ngân hàng",
   accountNumber: "Số tài khoản",
@@ -148,23 +148,29 @@ export const checkoutMessages = {
     "Thời gian giữ chỗ đã hết. Vui lòng kiểm tra kết quả giao dịch trước khi thanh toán tiếp.",
   reservationConfirmed:
     "Thanh toán đã được xác nhận. Hãy lưu mã đặt kho để đối chiếu khi đến nhận kho.",
-  reservationQrHint: "Quét QR để mở chi tiết đặt kho. Cần đăng nhập bằng tài khoản đã đặt.",
+  reservationQrHint: "Xuất trình mã đặt kho cho nhân viên khi đến chi nhánh nhận kho.",
   successful: "Đặt thuê kho thành công!",
   successDescription:
     "Thanh toán đã được xác nhận. Lưu mã xác nhận và đến chi nhánh theo lịch nhận kho.",
   paid: "Đã thanh toán",
+  confirmed: "Đã xác nhận",
+  checkInInfoTitle: "Thông tin nhận kho",
+  checkInTimeTitle: "Thời gian nhận kho",
+  checkInLocationTitle: "Địa điểm nhận ô kho",
+  checkInNotice:
+    "Khi đến chi nhánh nhận kho, vui lòng cung cấp mã đặt kho hoặc số điện thoại cho nhân viên để được hướng dẫn nhận bàn giao ô kho.",
   bookingId: "Mã đặt kho",
-  qrTitle: "Mã xác nhận & QR",
-  qrHint: "Xuất trình QR tại quầy khi đến nhận kho.",
-  qrLoading: "Đang tạo mã QR…",
-  qrUnavailable: "Chưa tải được QR. Sử dụng Booking ID khi đến nhận kho.",
+  qrTitle: "Mã xác nhận đặt kho",
+  qrHint: "Xuất trình mã đặt kho tại quầy khi đến nhận kho.",
+  qrLoading: "Đang tải thông tin…",
+  qrUnavailable: "Chưa tải được thông tin đặt kho. Sử dụng Booking ID khi đến nhận kho.",
   copy: "Sao chép mã",
   copied: "Đã sao chép",
   emailStatuses: {
     SENT: "Xác nhận đã được gửi tới email của bạn.",
     QUEUED: "Email xác nhận đang chờ gửi.",
     PENDING: "Email xác nhận đang được xử lý.",
-    FAILED: "Chưa gửi được email xác nhận. Hãy lưu Booking ID và QR.",
+    FAILED: "Chưa gửi được email xác nhận. Hãy lưu Booking ID.",
   },
   paymentVerified: "Chỉ xác nhận đặt kho sau khi hệ thống ghi nhận thanh toán thành công.",
 };

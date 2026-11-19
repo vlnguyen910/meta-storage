@@ -2,8 +2,7 @@
 
 import type { BookingConfirmation, BookingDraftPricing } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { ArrowLeft, Check, Copy, Mail, Phone, UserRound } from "lucide-react";
-import Image from "next/image";
+import { ArrowLeft, Check, Clock, Copy, Mail, Phone, UserRound, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -18,7 +17,6 @@ import { CheckoutRow, UnitPhoto } from "./checkout-parts";
 export function CheckoutConfirmation({
   state,
   children,
-  qrHint = m.qrHint,
 }: {
   state: {
     confirmation:
@@ -26,13 +24,12 @@ export function CheckoutConfirmation({
           emailStatus?: BookingConfirmation["emailStatus"];
         })
       | null;
-    qrDataUrl: string | null;
+    qrDataUrl?: string | null;
     paidPricing: BookingDraftPricing | null;
   } & {
     contact?: { fullName?: string; phone?: string; email?: string } | null;
   };
   children?: ReactNode;
-  qrHint?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const pathname = usePathname();
@@ -111,26 +108,78 @@ export function CheckoutConfirmation({
         </p>
       </section>
 
-      {/* Details Grid: QR Code + Summary */}
+      {/* Details Grid: Check-in Info + Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-        {/* QR Code Panel */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col items-center justify-center text-center">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-            {m.qrTitle}
-          </h2>
-          <strong className="block max-w-full break-all text-sm font-mono font-bold text-slate-800 mb-2">
-            {formatReference(confirmation.bookingCode, "BK")}
-          </strong>
-          <div className="flex justify-center my-2">
-            {state.qrDataUrl ? (
-              <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs inline-block">
-                <Image src={state.qrDataUrl} alt={m.qrTitle} width={160} height={160} unoptimized />
+        {/* Check-in Information Panel */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                {m.checkInInfoTitle}
+              </h2>
+              <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-[#165f4d]">
+                {m.confirmed}
+              </span>
+            </div>
+
+            {/* Prominent Booking Code Box */}
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-center my-3">
+              <span className="text-xs font-semibold text-slate-500 block mb-1">{m.bookingId}</span>
+              <div className="flex items-center justify-center gap-2">
+                <strong className="font-mono text-xl sm:text-2xl font-extrabold tracking-wider text-slate-900">
+                  {formatReference(confirmation.bookingCode, "BK")}
+                </strong>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-lg hover:bg-emerald-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(confirmation.bookingCode);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      setCopied(false);
+                    }
+                  }}
+                  aria-label={m.copy}
+                >
+                  <Copy size={16} />
+                </button>
               </div>
-            ) : (
-              <p className="text-xs text-slate-400 py-8">{m.qrUnavailable}</p>
-            )}
+              {copied ? (
+                <span className="text-emerald-700 font-bold text-xs mt-1 block">{m.copied}</span>
+              ) : null}
+            </div>
+
+            {/* Check-in Guidance List */}
+            <div className="space-y-3 mt-4 text-xs sm:text-sm">
+              <div className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <Clock className="size-4 text-[#165f4d] shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-slate-800 block">{m.checkInTimeTitle}</span>
+                  <span className="text-slate-600 text-xs">
+                    {formatDateTime(confirmation.checkInSlotStart)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <Warehouse className="size-4 text-[#165f4d] shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-slate-800 block">
+                    {m.checkInLocationTitle}
+                  </span>
+                  <span className="text-slate-600 text-xs">
+                    {confirmation.facility.name} · {confirmation.facility.address}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">{qrHint}</p>
+
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <p className="text-xs text-slate-500 leading-relaxed">💡 {m.checkInNotice}</p>
+          </div>
         </div>
 
         {/* Summary Details Panel */}

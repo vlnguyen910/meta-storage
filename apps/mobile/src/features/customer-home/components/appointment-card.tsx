@@ -1,4 +1,4 @@
-import { CalendarClock, Eye, QrCode, Warehouse } from "lucide-react-native";
+import { CalendarClock, Eye, Warehouse } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import type { AppointmentCardProps } from "../../../common/customer-home.types";
 import {
@@ -66,7 +66,7 @@ export function AppointmentCard({ appointment: a, onPress, variant }: Appointmen
       </View>
       <View className="mb-3 mt-1 flex-row items-start gap-3">
         <View className="mt-1 h-10 w-10 items-center justify-center rounded-control border border-outline-variant/60 bg-customer-subtle">
-          <Icon as={QrCode} size={22} className="text-primary" />
+          <Icon as={CalendarClock} size={22} className="text-primary" />
         </View>
         <View className="min-w-0 flex-1 gap-1 pt-3">
           {a.paymentStatus ? (
