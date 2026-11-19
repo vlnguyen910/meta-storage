@@ -34,7 +34,12 @@ export function StaffAssignmentModal({ booking, isOpen, onClose }: StaffAssignme
     if (mutation.isPending || !activeStaff.some((member) => member.id === input.staffId)) return;
     setError("");
     try {
-      await mutation.mutateAsync({ bookingId: booking.id, input: { staffId: input.staffId } });
+      await mutation.mutateAsync({
+        bookingId: booking.id,
+        input: { staffId: input.staffId, notes: input.notes },
+        appointmentType: booking.appointmentType,
+        facilityId: booking.facilityId,
+      });
       const member = activeStaff.find((item) => item.id === input.staffId);
       showToast(M.success(member?.name ?? M.staff, booking.bookingCode), "success");
       onClose();

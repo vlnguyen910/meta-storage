@@ -1,6 +1,15 @@
-import type { AppointmentRecordDto } from "@metastorage/contracts";
+import type {
+  AppointmentRecordDto,
+  FacilitySupportTicket,
+  FacilityTaskDetail,
+} from "@metastorage/contracts";
 import { expect, it } from "vitest";
-import { appointmentItem, isCompletedDispatchItem, readiness } from "./use-dispatch";
+import {
+  appointmentItem,
+  isCompletedDispatchItem,
+  readiness,
+  supportTicketDispatchItem,
+} from "./use-dispatch";
 
 it("keeps appointment IDs for actions and reservation IDs for the incumbent display", () => {
   const a = {
@@ -146,4 +155,77 @@ it("correctly identifies completed dispatch items across check-in, check-out, an
     scheduledDate: "2026-11-19",
   } as unknown as AppointmentRecordDto);
   expect(isCompletedDispatchItem(activeSupport)).toBe(false);
+});
+
+it("maps support tickets to dispatch items and handles assignment status", () => {
+  const ticket = {
+    id: "4bcadc0a-372a-423f-8ce7-f8f1948cd9e8",
+    bookingId: null,
+    reservationId: "7863bf25-8246-43c1-9320-4d836913108e",
+    facilityId: "fac-1",
+    rentalId: "7f7a77db-4b46-4b97-9944-53c482a20913",
+    storageUnitId: "72000000-0000-4000-8000-000000001022",
+    paymentId: null,
+    category: "STORAGE_UNIT",
+    subject: "Cửa kho bị kẹt",
+    description: "Không mở được khóa ô kho",
+    status: "OPEN",
+    priority: "NORMAL",
+    version: 0,
+    actionDueAt: "2026-11-19T18:00:00Z",
+    createdAt: "2026-11-19T06:00:00Z",
+    updatedAt: "2026-11-19T06:00:00Z",
+    closedAt: null,
+    closureKind: null,
+    closeReason: null,
+    customer: {
+      name: "Lê Anh",
+      email: "customer@example.com",
+      phone: "0901234567",
+    },
+    unitCode: "HCM-01-UT-1M-002",
+    bookingCode: "BK-7863-13108E",
+  } as unknown as FacilitySupportTicket;
+
+  // 1. Unassigned ticket -> NEEDS_STAFF
+  const unassigned = supportTicketDispatchItem(ticket, null);
+  expect(unassigned.id).toBe(ticket.id);
+  expect(unassigned.appointmentType).toBe("SUPPORT");
+  expect(unassigned.bookingCode).toBe("YC-4BCA-8CD9E8");
+  expect(unassigned.contactName).toBe("Lê Anh");
+  expect(unassigned.contactPhone).toBe("0901234567");
+  expect(unassigned.assignedStaff).toBeNull();
+  expect(unassigned.assignedUnit?.physicalUnitCode).toBe("HCM-01-UT-1M-002");
+  expect(readiness(unassigned)).toBe("NEEDS_STAFF");
+  expect(isCompletedDispatchItem(unassigned)).toBe(false);
+
+  // 2. Assigned ticket -> CONFIRMED
+  const assigned = supportTicketDispatchItem(ticket, {
+    id: "task-1",
+    facilityId: "fac-1",
+    assignedStaffId: "staff-1",
+    assignedStaffName: "Trần Quốc Huy",
+    type: "HANDLE_SUPPORT",
+    referenceType: "SUPPORT_TICKET",
+    referenceId: ticket.id,
+    status: "ASSIGNED",
+  } as unknown as FacilityTaskDetail);
+  expect(assigned.assignedStaff?.id).toBe("staff-1");
+  expect(assigned.assignedStaff?.name).toBe("Trần Quốc Huy");
+  expect(readiness(assigned)).toBe("CONFIRMED");
+  expect(isCompletedDispatchItem(assigned)).toBe(false);
+
+  // 3. Completed ticket -> COMPLETED
+  const completed = supportTicketDispatchItem(ticket, {
+    id: "task-1",
+    facilityId: "fac-1",
+    assignedStaffId: "staff-1",
+    assignedStaffName: "Trần Quốc Huy",
+    type: "HANDLE_SUPPORT",
+    referenceType: "SUPPORT_TICKET",
+    referenceId: ticket.id,
+    status: "COMPLETED",
+  } as unknown as FacilityTaskDetail);
+  expect(readiness(completed)).toBe("COMPLETED");
+  expect(isCompletedDispatchItem(completed)).toBe(true);
 });

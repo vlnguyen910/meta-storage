@@ -265,14 +265,16 @@ export function FacilityBookingsView({
               !isStaff &&
               (returnFlow
                 ? ["SCHEDULED", "CONFIRMED"]
-                : [
-                    "READY",
-                    "NEEDS_UNIT",
-                    "NEEDS_STAFF",
-                    "INSPECTING",
-                    "READY_HANDOVER",
-                    "TOO_EARLY",
-                  ]
+                : supportFlow
+                  ? ["SCHEDULED", "CONFIRMED", "NEEDS_STAFF"]
+                  : [
+                      "READY",
+                      "NEEDS_UNIT",
+                      "NEEDS_STAFF",
+                      "INSPECTING",
+                      "READY_HANDOVER",
+                      "TOO_EARLY",
+                    ]
               ).includes(state);
             const url = returnFlow
               ? "/staff/tasks"
