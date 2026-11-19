@@ -178,7 +178,8 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
-      const remaining = Math.max(0, INSPECTION_PHOTO_MAX_COUNT - (record?.evidence.length ?? 0));
+      const maxPhotos = record?.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
+      const remaining = Math.max(0, maxPhotos - (record?.evidence.length ?? 0));
       if (remaining <= 0) return null;
       const inputs = await pickImages({ camera, limit: remaining });
       return inputs.length && record ? api.inspections.upload(record.id, inputs) : null;
@@ -294,7 +295,8 @@ export function useStaffReturn(owner: string, appointmentId: string) {
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
-      const remaining = Math.max(0, INSPECTION_PHOTO_MAX_COUNT - (record?.evidence.length ?? 0));
+      const maxPhotos = record?.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
+      const remaining = Math.max(0, maxPhotos - (record?.evidence.length ?? 0));
       if (remaining <= 0) return null;
       const inputs = await pickImages({ camera, limit: remaining });
       return inputs.length && record ? api.inspections.upload(record.id, inputs) : null;
@@ -368,8 +370,9 @@ export function useStaffUnitInspection(owner: string, task: FacilityTaskDetail) 
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
+      const maxPhotos = recordQuery.data?.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
       const currentCount = recordQuery.data?.evidence.length ?? 0;
-      const remaining = Math.max(0, INSPECTION_PHOTO_MAX_COUNT - currentCount);
+      const remaining = Math.max(0, maxPhotos - currentCount);
       if (remaining <= 0) return null;
       const inputs = await pickImages({ camera, limit: remaining });
       return inputs.length && recordQuery.data

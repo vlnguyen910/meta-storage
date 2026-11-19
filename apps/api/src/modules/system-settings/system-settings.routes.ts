@@ -22,6 +22,9 @@ export const systemSettingsRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
   });
+  typed.get("/system-settings/operational", async () =>
+    successResponse(await service.getOperationalSettings()),
+  );
   typed.get("/system-settings", { preHandler: [requireAuth] }, async (req) =>
     successResponse(await service.list(actor(req))),
   );

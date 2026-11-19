@@ -345,6 +345,7 @@ function InspectionEditor({
     record.condition ?? "GOOD",
   );
   const locked = record.status === "PASSED" || record.status === "FAILED";
+  const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
   const selectedPhoto = record.evidence[photoIndex];
   const previousCountRef = useRef(record.evidence.length);
   useEffect(() => {
@@ -435,8 +436,8 @@ function InspectionEditor({
         <View className="mb-3 flex-row items-center justify-between gap-2">
           <Text className="font-body-semibold text-label text-ink">{M.photos}</Text>
           <Text className="font-body-medium text-label text-muted">
-            {record.evidence.length}/{INSPECTION_PHOTO_MAX_COUNT}
-            {record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT ? " (Đã đạt giới hạn)" : ""}
+            {record.evidence.length}/{maxPhotos}
+            {record.evidence.length >= maxPhotos ? " (Đã đạt giới hạn)" : ""}
           </Text>
         </View>
         {selectedPhoto && (
@@ -516,13 +517,13 @@ function InspectionEditor({
             <Button
               secondary
               label={M.addPhoto}
-              disabled={busy || record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT}
+              disabled={busy || record.evidence.length >= maxPhotos}
               onPress={() => onPhoto(false)}
             />
             <Button
               secondary
               label={M.takePhoto}
-              disabled={busy || record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT}
+              disabled={busy || record.evidence.length >= maxPhotos}
               onPress={() => onPhoto(true)}
             />
           </>

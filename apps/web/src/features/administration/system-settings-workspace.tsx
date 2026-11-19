@@ -265,6 +265,10 @@ function EditSettingDialog({
       setError("Giới hạn dung lượng Cloudinary phải từ 1 đến 50 MB.");
       return;
     }
+    if (setting.key === "CHECK_IN_MAX_PHOTOS" && (val < 1 || val > 30)) {
+      setError("Số lượng hình ảnh check-in tối đa phải từ 1 đến 30 ảnh.");
+      return;
+    }
     await onSave(val);
   };
 
@@ -282,8 +286,19 @@ function EditSettingDialog({
             <div className="relative">
               <Input
                 type="number"
-                min={setting.key === "CLOUDINARY_MAX_UPLOAD_MB" ? 1 : 0}
-                max={setting.key === "CLOUDINARY_MAX_UPLOAD_MB" ? 50 : 2147483647}
+                min={
+                  setting.key === "CLOUDINARY_MAX_UPLOAD_MB" ||
+                  setting.key === "CHECK_IN_MAX_PHOTOS"
+                    ? 1
+                    : 0
+                }
+                max={
+                  setting.key === "CLOUDINARY_MAX_UPLOAD_MB"
+                    ? 50
+                    : setting.key === "CHECK_IN_MAX_PHOTOS"
+                      ? 30
+                      : 2147483647
+                }
                 value={val}
                 onChange={(e) => {
                   setVal(Number(e.target.value));
