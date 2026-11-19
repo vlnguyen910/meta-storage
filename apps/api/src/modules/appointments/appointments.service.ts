@@ -119,10 +119,8 @@ export class AppointmentsService {
     const demo = isDevelopmentEnvironment();
     const sameDaySchedulingAllowed = Boolean(
       slot &&
-        (input.appointmentType === Type.CHECK_IN
-          ? this.slots.allowsSameDayReservation(slot, input.scheduledDate, now)
-          : input.appointmentType === Type.CHECK_OUT &&
-            this.slots.allowsSameDayAppointment(slot, input.scheduledDate, now)),
+        (input.appointmentType === Type.CHECK_IN || input.appointmentType === Type.CHECK_OUT) &&
+        this.slots.allowsSameDayReservation(slot, input.scheduledDate, now),
     );
     if (
       !slot ||
@@ -156,7 +154,14 @@ export class AppointmentsService {
           customerId,
         );
         await this.rentals.requireNoPendingRenewalPayment(tx, context.rental.id);
-        if (slot.startsAt < context.rental.startAt) throw new BadRequestError(m.scheduleMismatch);
+        // A same-day check-in slot ignores its window, so it may start before the handover time.
+        const sameDayDemoSlot = this.slots.allowsCheckInDuringSameDaySlot(
+          slot,
+          input.scheduledDate,
+          now,
+        );
+        if (!sameDayDemoSlot && slot.startsAt < context.rental.startAt)
+          throw new BadRequestError(m.scheduleMismatch);
         facilityId = context.facilityId;
       } else {
         if (!input.supportTicketId) throw new BadRequestError(m.contextMismatch);
