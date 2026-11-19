@@ -1,4 +1,5 @@
 export const STAFF_API_UI = {
+  newTaskAssigned: "Bạn vừa được giao công việc mới.",
   workUnavailable: "Công việc đã bị hủy hoặc không còn được giao cho bạn.",
   nonCheckIn: "Lịch hẹn này không phải lịch nhận kho.",
   date: "Ngày làm việc",

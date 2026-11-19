@@ -7,11 +7,13 @@ import {
 } from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { useEffect, useRef } from "react";
 import { apiErrorDetailMessage } from "../../common/api-error.utils";
 import type { StaffSelection, StaffWorkFilters } from "../../common/staff-api.types";
 import { filterStaffWork } from "../../common/staff-work.utils";
 import { api } from "../../lib/api";
 import { pickImages } from "../../lib/pick-image";
+import { onStaffTaskAssigned } from "../realtime/use-work-realtime";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 
 export function staffError(error: unknown): string {
@@ -79,6 +81,13 @@ export function useStaffWorkspace(owner: string, filters: StaffWorkFilters) {
       ]),
     more: () => Promise.all([...(tasks.hasNextPage ? [tasks.fetchNextPage()] : [])]),
   };
+}
+
+/** Calls `onAssigned` for each task-assignment event pushed over the notification socket. */
+export function useStaffAssignmentAlert(onAssigned: () => void) {
+  const callback = useRef(onAssigned);
+  callback.current = onAssigned;
+  useEffect(() => onStaffTaskAssigned(() => callback.current()), []);
 }
 
 export function useStaffTaskAction(owner: string, task: FacilityTaskDetail) {

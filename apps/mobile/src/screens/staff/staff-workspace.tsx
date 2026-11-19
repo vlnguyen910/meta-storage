@@ -35,6 +35,7 @@ import { StatusPill } from "../../components/ui/workspace-ui";
 import { STAFF_API_UI as M } from "../../features/staff-api/staff-api.messages";
 import {
   staffError,
+  useStaffAssignmentAlert,
   useStaffTaskAction,
   useStaffTaskDetail,
   useStaffWorkspace,
@@ -67,6 +68,7 @@ export function StaffWorkspace({ owner, name, onHome, onLogout }: StaffWorkspace
     setFeedback({ kind, message });
     feedbackTimer.current = setTimeout(() => setFeedback(null), 3500);
   }, []);
+  useStaffAssignmentAlert(() => notify("success", M.newTaskAssigned));
   const selectionId = notifications
     ? "notifications"
     : selection?.kind === "appointment"
