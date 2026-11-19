@@ -298,7 +298,7 @@ export function RenewalScreen({
                   >
                     {M.viewRental}
                   </Link>
-                ) : (
+                ) : renewal.status !== "QUOTED" ? (
                   <Button
                     variant="outline"
                     loading={detail.isFetching || payment.isFetching}
@@ -309,7 +309,7 @@ export function RenewalScreen({
                   >
                     {M.refresh}
                   </Button>
-                )}
+                ) : null}
                 {expired &&
                   renewal.status !== "APPLIED" &&
                   renewal.status !== "REFUND_REQUIRED" &&

@@ -109,3 +109,9 @@ it("keeps a refund-required renewal out of the success state", async () => {
   expect(screen.queryByText("Gia hạn kho thành công")).not.toBeInTheDocument();
   expect(calls.toast).not.toHaveBeenCalled();
 });
+it("does not render the check status button when a renewal is quoted and awaiting payment", async () => {
+  calls.get.mockResolvedValue({ ...renewal, status: "QUOTED" });
+  setup();
+  await screen.findByRole("button", { name: "Thanh toán gia hạn" });
+  expect(screen.queryByRole("button", { name: "Kiểm tra trạng thái" })).not.toBeInTheDocument();
+});
