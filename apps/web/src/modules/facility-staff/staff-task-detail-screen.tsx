@@ -301,7 +301,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
     }
     const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
     if (record.evidence.length >= maxPhotos) {
-      setPhotoError(M.returnPhotoLimit);
+      setPhotoError(M.returnPhotoLimit(maxPhotos));
       return;
     }
     setPhotoError("");

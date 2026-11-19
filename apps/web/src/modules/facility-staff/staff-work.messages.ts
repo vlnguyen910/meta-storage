@@ -132,7 +132,7 @@ export const STAFF_WORK = {
   returnAddPhoto: "Thêm ảnh",
   returnPhotoUploading: "Đang tải ảnh…",
   returnPhotoError: "Ảnh cần có định dạng JPEG, PNG hoặc WebP và dung lượng không quá 3 MB.",
-  returnPhotoLimit: "Biên bản chỉ cho phép tối đa 8 ảnh.",
+  returnPhotoLimit: (maxCount: number = 8) => `Biên bản chỉ cho phép tối đa ${maxCount} ảnh.`,
   returnPhotoSaveError: "Không thể cập nhật ảnh bằng chứng. Hãy thử lại.",
   returnNoEvidence: "Chưa có ảnh bằng chứng.",
   returnCheck: "Kiểm tra tình trạng kho",
