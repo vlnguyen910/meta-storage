@@ -161,6 +161,11 @@ export const F5 = {
   role: "Vai trò tại cơ sở",
   manager: "Quản lý cơ sở",
   employee: "Nhân viên cơ sở",
+  managerRoleAlreadyAssigned: "Quản lý cơ sở (Đã có quản lý)",
+  facilityAlreadyHasManager:
+    "Cơ sở này đã có Quản lý cơ sở đang hoạt động. Mỗi cơ sở chỉ được phép có tối đa 1 Quản lý cơ sở.",
+  facilityManagerExistsHint: (name: string) =>
+    `Hiện tại cơ sở đã có Quản lý: ${name}. Vui lòng thu hồi quyền quản lý của nhân sự hiện tại trước khi phân công người mới.`,
   bomUserHint:
     "Nhập UUID của tài khoản đang hoạt động có vai trò tương ứng. Danh sách tài khoản chỉ dành cho Admin.",
   revoke: "Thu hồi phân công",

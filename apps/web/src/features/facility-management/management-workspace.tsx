@@ -13,7 +13,16 @@ import {
   type FacilityUnitTypeDto,
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { Layers, Pencil, Plus, Search, UserMinus, UserPlus, Warehouse } from "lucide-react";
+import {
+  AlertTriangle,
+  Layers,
+  Pencil,
+  Plus,
+  Search,
+  UserMinus,
+  UserPlus,
+  Warehouse,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -569,6 +578,12 @@ function FacilityMembershipsTable({
 
   const items = query.data ?? [];
 
+  const activeManager = useMemo(
+    () => items.find((item) => item.role === "FACILITY_MANAGER" && item.isActive),
+    [items],
+  );
+  const isFmBlocked = role === "FACILITY_MANAGER" && Boolean(activeManager);
+
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
@@ -684,7 +699,10 @@ function FacilityMembershipsTable({
         <Button
           type="button"
           variant="primary"
-          onClick={() => setAssignDialogOpen(true)}
+          onClick={() => {
+            form.reset({ userId: "", role: "FACILITY_STAFF" });
+            setAssignDialogOpen(true);
+          }}
           className="h-10 px-4 text-xs font-semibold gap-2 shadow-xs shrink-0"
         >
           <UserPlus className="size-4" />
@@ -801,6 +819,13 @@ function FacilityMembershipsTable({
             noValidate
             className="grid gap-4"
             onSubmit={form.handleSubmit(async (input) => {
+              if (input.role === "FACILITY_MANAGER" && activeManager) {
+                form.setError("role", {
+                  type: "manual",
+                  message: F5.facilityAlreadyHasManager,
+                });
+                return;
+              }
               try {
                 await assign.mutateAsync(input);
                 showToast(F5.saved, "success");
@@ -819,16 +844,37 @@ function FacilityMembershipsTable({
                     shouldValidate: true,
                   });
                   form.setValue("userId", "");
+                  form.clearErrors("role");
                 }}
                 options={[
                   { value: "FACILITY_STAFF", label: F5.employee },
-                  { value: "FACILITY_MANAGER", label: F5.manager },
+                  {
+                    value: "FACILITY_MANAGER",
+                    label: activeManager ? F5.managerRoleAlreadyAssigned : F5.manager,
+                  },
                 ]}
                 ariaLabel={F5.role}
                 className="w-full"
                 triggerClassName="h-10 min-h-10 w-full bg-slate-50/50 border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
               />
             </ManagementField>
+
+            {isFmBlocked && activeManager && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900"
+              >
+                <AlertTriangle className="size-4 shrink-0 text-amber-600 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-amber-950">{F5.facilityAlreadyHasManager}</p>
+                  <p className="text-amber-800 leading-relaxed">
+                    {F5.facilityManagerExistsHint(
+                      activeManager.userName ?? activeManager.userEmail ?? activeManager.userId,
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <ManagementField
               label={isAdmin ? F5.user : F5.userId}
@@ -874,7 +920,11 @@ function FacilityMembershipsTable({
               <Button
                 type="submit"
                 variant="primary"
-                disabled={assign.isPending || (isAdmin && (accounts.isPending || accounts.isError))}
+                disabled={
+                  assign.isPending ||
+                  isFmBlocked ||
+                  (isAdmin && (accounts.isPending || accounts.isError))
+                }
                 loading={assign.isPending}
               >
                 {F5.save}
