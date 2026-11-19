@@ -13,7 +13,7 @@ export const INSPECTIONS_API_MESSAGES = {
   taskNotAvailable: "Task kiểm tra không còn được phân công cho nhân viên này.",
   notAssigned: "Bạn không được phân công xử lý phiếu kiểm tra này.",
   conditionRequired: "Cần ghi nhận tình trạng kho trước khi hoàn tất kiểm tra.",
-  evidenceLimit: "Mỗi phiếu kiểm tra được đính kèm tối đa 8 ảnh.",
+  evidenceLimit: "Số lượng ảnh minh chứng vượt quá giới hạn cho phép của hệ thống.",
   evidenceNotFound: "Không tìm thấy ảnh minh chứng.",
   handoverNotReady: "Inspection chưa PASSED hoặc booking không còn đủ điều kiện bàn giao.",
   alreadyCompleted: "Inspection đã hoàn tất và không thể chỉnh sửa.",
