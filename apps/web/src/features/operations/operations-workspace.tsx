@@ -10,11 +10,11 @@ import { FieldShell, Input } from "@/components/ui/form-controls";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { isMockMode } from "@/config/api-mode";
 import { businessOperationsRoutes as routes } from "@/config/routes";
+import { TypeCatalogTable } from "@/features/facility-management/type-catalog-table";
 import { cn } from "@/lib/cn";
 import { OperationsDashboardView } from "./components/operations-dashboard-view";
 import { OperationsFacilitiesRealView } from "./components/operations-facilities-real-view";
 import { OperationsFeesView } from "./components/operations-fees-view";
-import { OperationsPricingView } from "./components/operations-pricing-view";
 import { OperationsReportsHub } from "./components/operations-reports-hub";
 import { OperationsRevenueView } from "./components/operations-revenue-view";
 import { OperationsRulesView } from "./components/operations-rules-view";
@@ -54,7 +54,7 @@ export function OperationsWorkspace({ section }: Readonly<OperationsWorkspacePro
               <OperationsDashboardView />
             </div>
           )}
-          {section === "pricing" && <OperationsPricingView />}
+          {section === "pricing" && <TypeCatalogTable paginationLabel={M.navigation.pricing} />}
           {section === "business-rules" && (
             <div className="flex-1 overflow-y-auto min-h-0 pr-1">
               <OperationsRulesView />

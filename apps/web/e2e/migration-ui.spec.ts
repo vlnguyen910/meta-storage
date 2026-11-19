@@ -404,8 +404,7 @@ test("FM creates a facility-scoped unit type and edits the price with its versio
 
 test("BOM views unit types and physical units without FM-only write actions", async ({ page }) => {
   const state = await fixture(page, UserRole.BUSINESS_OPERATIONS_MANAGER);
-  await page.goto("/operations/facility-management");
-  await page.getByRole("button", { name: "Danh mục loại kho", exact: true }).click();
+  await page.goto("/operations/pricing");
   await expect(page.getByRole("row").filter({ hasText: "TYPE-TEST" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Thêm loại kho", exact: true })).toHaveCount(0);
   await expect(
