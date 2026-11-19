@@ -424,7 +424,12 @@ function DebtHistory({
           <History size={14} className="text-slate-500" />
           <h3>{M.history}</h3>
           {!detail.data.payments.length && (
-            <span className="font-normal text-slate-500">· {M.noReceipts}</span>
+            <>
+              <span aria-hidden="true" className="font-normal text-slate-400">
+                ·
+              </span>
+              <span className="font-normal text-slate-500">{M.noReceipts}</span>
+            </>
           )}
         </div>
 
