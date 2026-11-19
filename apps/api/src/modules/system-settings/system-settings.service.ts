@@ -38,16 +38,40 @@ export class SystemSettingsService {
   }
   async list(actor: { role: string | null | undefined }): Promise<SystemSettingDto[]> {
     this.authorize(actor.role);
-    return (await this.repository.list())
-      .filter(
-        (row) =>
-          Object.hasOwn(SYSTEM_SETTING_DEFINITIONS, row.key) &&
-          SYSTEM_SETTING_DEFINITIONS[row.key].role === actor.role,
-      )
-      .map((row) => {
-        const { category, valueType, unit } = SYSTEM_SETTING_DEFINITIONS[row.key];
-        return { ...row, category, valueType, unit, updatedAt: row.updatedAt.toISOString() };
-      });
+    const rows = await this.repository.list();
+    const map = new Map(rows.map((row) => [row.key, row]));
+    const result: SystemSettingDto[] = [];
+    for (const [key, def] of Object.entries(SYSTEM_SETTING_DEFINITIONS)) {
+      if (def.role !== actor.role) continue;
+      const typedKey = key as SystemSettingKeyValue;
+      const row = map.get(typedKey);
+      if (row) {
+        result.push({
+          key: typedKey,
+          value: row.value,
+          description: row.description || def.description,
+          version: row.version,
+          updatedBy: row.updatedBy,
+          category: def.category,
+          valueType: def.valueType,
+          unit: def.unit,
+          updatedAt: row.updatedAt.toISOString(),
+        });
+      } else {
+        result.push({
+          key: typedKey,
+          value: def.defaultValue,
+          description: def.description,
+          version: 0,
+          updatedBy: null,
+          category: def.category,
+          valueType: def.valueType,
+          unit: def.unit,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+    return result;
   }
   async update(
     actor: { id: string; role: string | null | undefined },
@@ -65,7 +89,12 @@ export class SystemSettingsService {
       version = result.version;
     } else if (input.key !== "OPENING_HOUR" && input.key !== "CLOSING_HOUR") {
       version = await this.repository.db.transaction(async (tx) => {
-        const before = await this.repository.lock(input.key, tx);
+        let before = await this.repository.lock(input.key, tx);
+        if (!before) {
+          const def = SYSTEM_SETTING_DEFINITIONS[input.key];
+          await this.repository.insertDefault(input.key, def.defaultValue, def.description, tx);
+          before = await this.repository.lock(input.key, tx);
+        }
         if (!before) throw new NotFoundError(m.notFound);
         if (before.version !== input.expectedVersion) throw new ConflictError(m.stale);
         const after = await this.repository.save(

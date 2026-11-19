@@ -93,7 +93,9 @@ import type {
   SocialAuthInput,
   SocialAuthResponse,
   StaffTasksQuery,
+  SystemSettingChangeDto,
   SystemSettingDto,
+  SystemSettingKeyValue,
   SystemSettingUpdateResult,
   UnitTypeListParams,
   UpdateAppointmentInput,
@@ -593,6 +595,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       list: () => http.get<ApiEnvelope<SystemSettingDto[]>>("/system-settings").then(unwrap),
       update: (input: ConfigureSystemSetting) =>
         http.put<ApiEnvelope<SystemSettingUpdateResult>>("/system-settings", input).then(unwrap),
+      history: (key: SystemSettingKeyValue, offset = 0, limit = 20) =>
+        http
+          .get<ApiEnvelope<SystemSettingChangeDto[]>>(`/system-settings/${key}/history`, {
+            params: { limit, offset },
+          })
+          .then(unwrap),
     },
     pricing: {
       getConfiguration: (params: Partial<PricingQuery> = {}) =>

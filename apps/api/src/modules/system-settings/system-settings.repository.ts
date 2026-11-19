@@ -40,6 +40,23 @@ export class SystemSettingsRepository {
       .for("update");
     return row;
   }
+  async insertDefault(
+    key: SystemSettingKeyValue,
+    value: number,
+    description: string,
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+  ) {
+    await tx
+      .insert(systemSettings)
+      .values({
+        key,
+        value,
+        description,
+        version: 0,
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing();
+  }
   async save(
     key: SystemSettingKeyValue,
     value: number,
