@@ -3,7 +3,7 @@ export const F5 = {
   maxPrice: "Giá tối đa (VND/tháng)",
   priceRange: "Khoảng giá BOM",
   localPrice: "Giá tại cơ sở (VND/tháng)",
-  invalidCatalogPrice: "Giá phải là số nguyên từ 1 đến 2.147.483.647 VND.",
+  invalidCatalogPrice: "Giá phải là số nguyên tối thiểu 1 VND.",
   invalidBounds: "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu.",
   invalidLocalPrice: "Giá thuê phải nằm trong khoảng giá BOM thiết lập.",
   addOffering: "Chọn loại kho cho cơ sở",
