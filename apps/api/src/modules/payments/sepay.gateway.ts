@@ -161,12 +161,14 @@ export class SepayPaymentGateway {
       (this.config.trustedWebOrigins ?? []).includes(origin);
     const webUrl = trustedWebOrigin ? origin : this.config.webUrl || "http://localhost:3000";
     const resultPath =
-      input.debtId && input.rentalId
-        ? // The customer returns to the rental whose fees they paid.
-          `/customer/storage/${input.rentalId}`
-        : input.renewalId && input.rentalId
-          ? `/customer/storage/${input.rentalId}/renew`
-          : "/bookings/payment-result";
+      input.debtId && input.staffCheckout
+        ? "/staff/tasks"
+        : input.debtId && input.rentalId
+          ? // The customer returns to the rental whose fees they paid.
+            `/customer/storage/${input.rentalId}`
+          : input.renewalId && input.rentalId
+            ? `/customer/storage/${input.rentalId}/renew`
+            : "/bookings/payment-result";
     const resultUrl = new URL(resultPath, webUrl).toString();
     const referenceTarget = input.reservationId
       ? `reservationId=${input.reservationId}`

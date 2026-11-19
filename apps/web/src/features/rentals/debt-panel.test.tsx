@@ -61,7 +61,7 @@ test("Staff collects the full fee in cash and retries with the same idempotency 
   const user = userEvent.setup();
   view();
   await user.click(
-    await screen.findByRole("button", { name: "Thu tiền mặt / xem lịch sử" }, { timeout: 3000 }),
+    await screen.findByRole("button", { name: "Thu phí / xem lịch sử" }, { timeout: 3000 }),
   );
   await user.click(await screen.findByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }));
   await screen.findByRole("alert");
@@ -118,4 +118,15 @@ test("settlement remains visible when refund and debt are zero", () => {
   expect(screen.getByText("Quyết toán trả kho")).toBeInTheDocument();
   expect(screen.getByText("Tiền hoàn")).toBeInTheDocument();
   expect(screen.getByText("Phí còn phải trả")).toBeInTheDocument();
+});
+test("Staff opens the SePay QR for the customer at the facility", async () => {
+  const session = { paymentId: "payment", checkoutUrl: "https://pay.example", formFields: {} };
+  mocks.startSepay.mockResolvedValue(session);
+  const user = userEvent.setup();
+  view();
+  await user.click(await screen.findByRole("button", { name: "Thu phí / xem lịch sử" }));
+  await user.click(await screen.findByRole("button", { name: "Thanh toán qua SePay" }));
+  await waitFor(() => expect(mocks.startSepay).toHaveBeenCalledWith("debt"));
+  await waitFor(() => expect(mocks.submit).toHaveBeenCalledWith(session));
+  expect(mocks.collect).not.toHaveBeenCalled();
 });

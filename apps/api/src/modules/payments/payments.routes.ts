@@ -78,7 +78,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
   typedApp.post(
     "/debts/:id/payments/sepay",
     {
-      preHandler: [requireRole("CUSTOMER")],
+      preHandler: [requireRole("CUSTOMER", "FACILITY_STAFF")],
       schema: { params: z.object({ id: z.uuid() }) },
     },
     async (request, reply) => {

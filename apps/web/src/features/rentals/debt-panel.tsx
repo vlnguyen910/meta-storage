@@ -432,12 +432,23 @@ function DebtHistory({
 
           <p className="flex items-center gap-1.5 text-xs text-slate-600">
             <Banknote size={14} className="text-emerald-700" aria-hidden="true" />
-            {M.cashOnly}
+            {M.staffPayHint}
           </p>
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
-              disabled={collect.isPending}
+              variant="outline"
+              disabled={collect.isPending || startSepay.isPending}
+              loading={startSepay.isPending}
+              onClick={() => startSepay.mutate()}
+              className="min-h-0 h-8.5 gap-1.5 px-4 text-xs font-bold"
+            >
+              <QrCode size={14} aria-hidden="true" />
+              {M.sepayStart}
+            </Button>
+            <Button
+              type="button"
+              disabled={collect.isPending || startSepay.isPending}
               loading={collect.isPending}
               // The full remaining fee is collected in one cash payment.
               onClick={() =>
@@ -452,6 +463,11 @@ function DebtHistory({
               {M.collect}
             </Button>
           </div>
+          {startSepay.isError && (
+            <p role="alert" className="text-xs font-semibold text-rose-600">
+              {managementError(startSepay.error, M.sepayError)}
+            </p>
+          )}
         </div>
       )}
 

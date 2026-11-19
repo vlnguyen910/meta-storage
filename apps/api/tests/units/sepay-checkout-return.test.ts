@@ -85,3 +85,16 @@ test("debt checkout returns the customer to the rental whose fees were paid", ()
     expect(url.searchParams.get("status")).toBe(status);
   }
 });
+
+test("debt checkout opened by staff returns to the staff workspace", () => {
+  const { reservationId: _reservation, ...base } = input;
+  const session = gateway.createCheckoutSession({
+    ...base,
+    debtId: "00000000-0000-4000-8000-000000000003",
+    rentalId: "00000000-0000-4000-8000-000000000004",
+    staffCheckout: true,
+  });
+  const url = new URL(String(session?.formFields.success_url));
+  expect(url.pathname).toBe("/staff/tasks");
+  expect(url.searchParams.get("debtId")).toBe("00000000-0000-4000-8000-000000000003");
+});
