@@ -21,6 +21,9 @@ export function CustomerAppointmentsRealtime() {
     const refresh = () => {
       void client.invalidateQueries({ queryKey: ["customer-appointments", `${userId}:CUSTOMER`] });
       void client.invalidateQueries({ queryKey: ["appointments", `${userId}:CUSTOMER`] });
+      // A finalized return closes the rental and may open a debt.
+      void client.invalidateQueries({ queryKey: ["rentals"] });
+      void client.invalidateQueries({ queryKey: ["debts"] });
     };
     const stream = createNotificationStream({
       createSocket: () => new WebSocket(api.notifications.webSocketUrl(window.location.origin)),

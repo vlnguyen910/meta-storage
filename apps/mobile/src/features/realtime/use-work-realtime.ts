@@ -24,7 +24,14 @@ export function useWorkRealtime(userId?: string, role?: string) {
     const refresh = () => {
       const prefixes =
         role === "CUSTOMER"
-          ? ["customer-home-appointments", "customer-home-appointment", "customer-appointments"]
+          ? [
+              "customer-home-appointments",
+              "customer-home-appointment",
+              "customer-appointments",
+              // A finalized return closes the rental shown in My Storage.
+              "customer-storage",
+              "rental",
+            ]
           : [
               "mobile-staff-bookings",
               "mobile-staff-tasks",
