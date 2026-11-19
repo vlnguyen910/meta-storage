@@ -69,6 +69,16 @@ export function PaymentResultScreen() {
     canRead && !query.isError && query.data?.status === "SUCCEEDED"
       ? query.data.reservationId
       : undefined;
+  const [minLoadingDone, setMinLoadingDone] = useState(process.env.NODE_ENV === "test");
+
+  useEffect(() => {
+    if (minLoadingDone) return;
+    const timer = window.setTimeout(() => {
+      setMinLoadingDone(true);
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [minLoadingDone]);
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
@@ -96,6 +106,9 @@ export function PaymentResultScreen() {
   const blockingPaymentCheck = canRead && query.isFetching && !query.data;
   const isCustomer = pathname?.startsWith("/customer/");
   const isPending = message === m.pending;
+  const isWaiting =
+    (canRead && (!minLoadingDone || isPending || query.isLoading)) || (!confirmedId && isPending);
+  const showReceipt = canRead && Boolean(confirmedId) && minLoadingDone;
 
   const content = (
     <main aria-busy={blockingPaymentCheck} className="mx-auto w-full max-w-4xl px-4 py-2 sm:py-3">
@@ -117,14 +130,14 @@ export function PaymentResultScreen() {
       )}
       {blockingPaymentCheck && <Spinner label={m.loading} />}
       {!appReturnUrl &&
-        (confirmedId ? (
+        (showReceipt ? (
           <ReservationReceipt
             key={confirmedId}
-            reservationId={confirmedId}
+            reservationId={confirmedId as string}
             variant="confirmation"
           />
-        ) : isPending ? (
-          <section className="grid gap-5 rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-10 shadow-xs max-w-xl mx-auto text-center">
+        ) : isWaiting ? (
+          <section className="grid gap-5 rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-10 shadow-xs max-w-xl mx-auto text-center my-6">
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">{m.title}</h1>
 
             <div className="relative my-2 flex items-center justify-center">
@@ -223,7 +236,7 @@ export function PaymentResultScreen() {
     </main>
   );
 
-  if (isCustomer) {
+  if (isCustomer || (session && !appReturnUrl)) {
     return content;
   }
 
