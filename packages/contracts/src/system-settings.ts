@@ -11,6 +11,7 @@ export const SystemSettingKey = {
   OPENING_HOUR: "OPENING_HOUR",
   CLOSING_HOUR: "CLOSING_HOUR",
   CLOUDINARY_MAX_UPLOAD_MB: "CLOUDINARY_MAX_UPLOAD_MB",
+  CHECK_IN_MAX_PHOTOS: "CHECK_IN_MAX_PHOTOS",
 } as const;
 export type SystemSettingKeyValue = (typeof SystemSettingKey)[keyof typeof SystemSettingKey];
 
@@ -88,6 +89,14 @@ export const SYSTEM_SETTING_DEFINITIONS = {
     description: "Giới hạn dung lượng tối đa cho mỗi tệp tải lên Cloudinary (MB).",
     defaultValue: 3,
   },
+  CHECK_IN_MAX_PHOTOS: {
+    category: "OPERATIONS",
+    unit: "PHOTOS",
+    valueType: "INTEGER",
+    role: "SYSTEM_ADMIN",
+    description: "Số lượng hình ảnh tối đa nhân viên được tải lên khi check-in cho khách.",
+    defaultValue: 8,
+  },
 } as const;
 
 const integer = z
@@ -144,6 +153,11 @@ export const ConfigureSystemSettingSchema = z.discriminatedUnion("key", [
   z.strictObject({
     key: z.literal(SystemSettingKey.CLOUDINARY_MAX_UPLOAD_MB),
     value: integer.min(1, m.invalid).max(50, m.invalid),
+    expectedVersion: version,
+  }),
+  z.strictObject({
+    key: z.literal(SystemSettingKey.CHECK_IN_MAX_PHOTOS),
+    value: integer.min(1, m.invalid).max(30, m.invalid),
     expectedVersion: version,
   }),
 ]);

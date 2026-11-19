@@ -24,6 +24,7 @@ import { RentalsService } from "../rentals/rentals.service";
 import { createReservationsService } from "../reservations/reservations.service";
 import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
 import { StorageUnitsService } from "../storage-units/storage-units.service";
+import { SystemSettingsRepository } from "../system-settings/system-settings.repository";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import { InspectionsRepository } from "./inspections.repository";
 import { InspectionsService } from "./inspections.service";
@@ -49,6 +50,7 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
     createAppointmentsService(app.db),
     createReservationsService(app.db),
     app.notifications,
+    new SystemSettingsRepository(app.db),
   );
 
   typed.get(

@@ -1,6 +1,7 @@
 import {
   type ConfigureSystemSetting,
   SYSTEM_SETTING_MESSAGES as m,
+  type OperationalSettingsDto,
   SYSTEM_SETTING_DEFINITIONS,
   type SystemSettingChangeDto,
   type SystemSettingDto,
@@ -27,6 +28,20 @@ export class SystemSettingsService {
     const setting = await this.repository.find("CLOSING_HOUR");
     if (!setting) throw new NotFoundError(m.notFound);
     return Number(setting.value);
+  }
+  async getOperationalSettings(): Promise<OperationalSettingsDto> {
+    const rows = await this.repository.list();
+    const map = new Map(rows.map((row) => [row.key, Number(row.value)]));
+    return {
+      CHECK_IN_MAX_PHOTOS:
+        map.get("CHECK_IN_MAX_PHOTOS") ??
+        SYSTEM_SETTING_DEFINITIONS.CHECK_IN_MAX_PHOTOS.defaultValue,
+      CLOUDINARY_MAX_UPLOAD_MB:
+        map.get("CLOUDINARY_MAX_UPLOAD_MB") ??
+        SYSTEM_SETTING_DEFINITIONS.CLOUDINARY_MAX_UPLOAD_MB.defaultValue,
+      OPENING_HOUR: map.get("OPENING_HOUR") ?? SYSTEM_SETTING_DEFINITIONS.OPENING_HOUR.defaultValue,
+      CLOSING_HOUR: map.get("CLOSING_HOUR") ?? SYSTEM_SETTING_DEFINITIONS.CLOSING_HOUR.defaultValue,
+    };
   }
   private authorize(role: string | null | undefined, key?: SystemSettingKeyValue) {
     if (

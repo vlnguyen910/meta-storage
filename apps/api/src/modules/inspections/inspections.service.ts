@@ -40,6 +40,7 @@ import type { NotificationsService } from "../notifications/notifications.servic
 import type { RentalsService } from "../rentals/rentals.service";
 import type { ReservationsService } from "../reservations/reservations.service";
 import type { StorageUnitsService } from "../storage-units/storage-units.service";
+import type { SystemSettingsRepository } from "../system-settings/system-settings.repository";
 import { INSPECTIONS_API_MESSAGES as m } from "./inspections.messages";
 import type { InspectionRow, InspectionsRepository } from "./inspections.repository";
 
@@ -56,7 +57,19 @@ export class InspectionsService {
     private readonly appointments?: AppointmentsService,
     private readonly reservations?: ReservationsService,
     private readonly notifications?: NotificationsService,
+    private readonly systemSettings?: SystemSettingsRepository,
   ) {}
+
+  private async getMaxCheckInPhotos(): Promise<number> {
+    try {
+      const setting = await this.systemSettings?.find("CHECK_IN_MAX_PHOTOS");
+      const n = Number(setting?.value);
+      if (Number.isFinite(n) && n > 0) return n;
+    } catch {
+      /* ignore */
+    }
+    return INSPECTION_PHOTO_MAX_COUNT;
+  }
 
   async listForStaff(query: InspectionListQuery, actor: InspectionActor) {
     const facilities = await this.assignments.listUserAssignments(actor.id, actor.role);
@@ -353,10 +366,8 @@ export class InspectionsService {
       throw new ConflictError(m.evidenceNotFound);
     if ([...removed].some((assetId) => !existingEvidence.some((asset) => asset.id === assetId)))
       throw new NotFoundError(m.evidenceNotFound);
-    if (
-      existingEvidence.length - removed.size + (input.addEvidence?.length ?? 0) >
-      INSPECTION_PHOTO_MAX_COUNT
-    )
+    const maxPhotos = await this.getMaxCheckInPhotos();
+    if (existingEvidence.length - removed.size + (input.addEvidence?.length ?? 0) > maxPhotos)
       throw new ConflictError(m.evidenceLimit);
 
     let alreadyCompleted = false;
@@ -724,6 +735,7 @@ export class InspectionsService {
         createdAt: asset.createdAt.toISOString(),
         url: asset.url,
       })),
+      maxEvidenceCount: await this.getMaxCheckInPhotos(),
       ...(returnContext ? { returnContext } : {}),
     };
   }

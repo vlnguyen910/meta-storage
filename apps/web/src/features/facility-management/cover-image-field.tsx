@@ -4,6 +4,7 @@ import { CloudUpload, Link2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-controls";
+import { useOperationalSettings } from "@/features/administration/use-system-settings";
 import { managementError, useUploadCoverImage } from "./hooks";
 import { F5 } from "./management.messages";
 
@@ -17,6 +18,8 @@ export function CoverImageField({
   onChange: (value: string) => void;
 }) {
   const upload = useUploadCoverImage();
+  const { data: operationalSettings } = useOperationalSettings();
+  const maxMb = operationalSettings?.CLOUDINARY_MAX_UPLOAD_MB ?? 3;
   const [mode, setMode] = useState<"external" | "cloudinary">("external");
   const [uploadError, setUploadError] = useState<string>();
 
@@ -25,7 +28,7 @@ export function CoverImageField({
     if (!file) return;
     if (
       !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > 3 * 1024 * 1024
+      file.size > maxMb * 1024 * 1024
     ) {
       setUploadError(F5.coverFileError);
       return;
@@ -102,7 +105,7 @@ export function CoverImageField({
           <span className="text-sm font-semibold text-slate-800">
             {upload.isPending ? F5.coverUploading : F5.coverUpload}
           </span>
-          <span className="text-xs text-slate-500">{F5.coverUploadHint}</span>
+          <span className="text-xs text-slate-500">JPEG, PNG hoặc WebP · tối đa {maxMb} MB</span>
         </label>
       )}
       {uploadError && (

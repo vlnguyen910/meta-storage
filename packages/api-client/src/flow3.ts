@@ -2,6 +2,7 @@ import type {
   ApiEnvelope,
   ConfigureSystemSetting,
   LifecycleNotificationItem,
+  OperationalSettingsDto,
   RentalPaymentItem,
   SystemSettingChangeDto,
   SystemSettingDto,
@@ -26,6 +27,10 @@ export function createFlow3Client(http: AxiosInstance) {
         })
         .then(unwrap),
     systemSettings: {
+      operational: (signal?: AbortSignal) =>
+        http
+          .get<ApiEnvelope<OperationalSettingsDto>>("/system-settings/operational", { signal })
+          .then(unwrap),
       list: (signal?: AbortSignal) =>
         http.get<ApiEnvelope<SystemSettingDto[]>>("/system-settings", { signal }).then(unwrap),
       update: (input: ConfigureSystemSetting) =>

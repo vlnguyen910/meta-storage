@@ -12,7 +12,6 @@ import {
   HANDOVER_CHECKLIST_ITEMS,
   HandoverChecklistCompletionSchema,
   HandoverChecklistItemResultSchema,
-  INSPECTION_PHOTO_MAX_BYTES,
   INSPECTION_PHOTO_MAX_COUNT,
   InspectionConditionValueSchema,
 } from "@metastorage/contracts";
@@ -23,6 +22,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/components/providers/global-loading-provider";
 import { useToast } from "@/components/ui/toast";
+import { useOperationalSettings } from "@/features/administration/use-system-settings";
 import { api } from "@/lib/api";
 import { readFileBase64 } from "@/lib/read-file-base64";
 import { FLOW } from "./flow.messages";
@@ -232,6 +232,8 @@ export function useInspectionEditor(record: InspectionRecord, onNavigate: (next:
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { runWithGlobalLoading } = useGlobalLoading();
+  const { data: operationalSettings } = useOperationalSettings();
+  const maxUploadBytes = (operationalSettings?.CLOUDINARY_MAX_UPLOAD_MB ?? 3) * 1024 * 1024;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState(() => readResults(record.checklist));
@@ -325,12 +327,13 @@ export function useInspectionEditor(record: InspectionRecord, onNavigate: (next:
   async function upload(file: File) {
     if (
       !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > INSPECTION_PHOTO_MAX_BYTES
+      file.size > maxUploadBytes
     ) {
       setError(FLOW.photoError);
       return;
     }
-    if (record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT) {
+    const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
+    if (record.evidence.length >= maxPhotos) {
       setError(FLOW.photoLimit);
       return;
     }
