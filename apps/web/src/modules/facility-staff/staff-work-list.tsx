@@ -122,12 +122,16 @@ function StaffWorkContent({ facilityId }: StaffWorkContentProps) {
         .includes(filters.search.trim().toLocaleLowerCase("vi")),
   );
 
+  // Pending work runs soonest first; finished or closed work shows the latest first.
+  const direction = filters.group === "pending" ? 1 : -1;
   const rows = filtered
     .filter((item) => item.group === filters.group)
     .sort((a, b) => {
       if (!a.startsAt && b.startsAt) return 1;
       if (a.startsAt && !b.startsAt) return -1;
-      return (a.startsAt ?? "").localeCompare(b.startsAt ?? "") || a.id.localeCompare(b.id);
+      return (
+        direction * (a.startsAt ?? "").localeCompare(b.startsAt ?? "") || a.id.localeCompare(b.id)
+      );
     });
 
   const pageCount = Math.max(1, Math.ceil(rows.length / 10));
