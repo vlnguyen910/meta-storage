@@ -1,5 +1,8 @@
 import { createNotificationStream } from "@metastorage/api-client";
-import { WorkUpdateNotificationSchema } from "@metastorage/contracts";
+import {
+  type StaffTaskAssignedNotification,
+  WorkUpdateNotificationSchema,
+} from "@metastorage/contracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
@@ -11,6 +14,17 @@ import { WEB_BASE_URL } from "../../lib/runtime-config";
 const NativeWebSocket = WebSocket as typeof WebSocket & {
   new (url: string, protocols: string[], options: { headers: Record<string, string> }): WebSocket;
 };
+
+type AssignmentListener = (event: StaffTaskAssignedNotification) => void;
+const assignmentListeners = new Set<AssignmentListener>();
+
+/** Lets the open staff workspace announce new work; returns the unsubscribe function. */
+export function onStaffTaskAssigned(listener: AssignmentListener) {
+  assignmentListeners.add(listener);
+  return () => {
+    assignmentListeners.delete(listener);
+  };
+}
 
 export function useWorkRealtime(userId?: string, role?: string) {
   const client = useQueryClient();
@@ -28,6 +42,7 @@ export function useWorkRealtime(userId?: string, role?: string) {
               "mobile-appointments",
               "mobile-appointment-tasks",
               "mobile-inspection",
+              "mobile-inbox",
             ];
       for (const key of prefixes) void client.invalidateQueries({ queryKey: [key, userId] });
     };
@@ -55,6 +70,8 @@ export function useWorkRealtime(userId?: string, role?: string) {
           event?.type === "STAFF_TASK_ASSIGNED" &&
           event.recipientId === userId
         ) {
+          for (const listener of assignmentListeners)
+            listener(event as StaffTaskAssignedNotification);
           if (!timer) {
             timer = setTimeout(() => {
               timer = undefined;
