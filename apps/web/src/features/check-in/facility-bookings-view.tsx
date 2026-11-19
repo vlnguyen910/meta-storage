@@ -6,7 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   ArrowRight,
+  Camera,
   DoorOpen,
+  FileCheck,
   Headset,
   Phone,
   RefreshCw,
@@ -29,12 +31,18 @@ import {
   titleClass,
   UnitPlaceholder,
 } from "@/features/facility-flow/flow-ui";
+import { InspectionPhotoCard } from "@/features/facility-flow/inspection-screen";
 import type {
   DispatchAppointmentType,
   DispatchFilterTab,
   DispatchItem,
 } from "@/features/facility-flow/use-dispatch";
-import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
+import {
+  isCompletedDispatchItem,
+  readiness,
+  useDispatch,
+} from "@/features/facility-flow/use-dispatch";
+import { SettlementSummary } from "@/features/rentals/debt-panel";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatBookingAmount, formatBookingDateTime as formatDateTime } from "./booking-display";
@@ -91,8 +99,27 @@ export function FacilityBookingsView({
   const detailsRental = useQuery({
     queryKey: ["manager-appointment-rental-detail", facilityId, detailsRentalId],
     queryFn: () => api.rentals.facilityDetail(facilityId, detailsRentalId),
-    enabled: Boolean(detailsRentalId) && details?.appointmentType === APPOINTMENT_TYPES.CHECK_OUT,
+    enabled: Boolean(detailsRentalId),
   });
+  const detailsInspections = useQuery({
+    queryKey: ["manager-appointment-inspections", details?.id],
+    queryFn: () => api.inspections.forAppointment(details?.id ?? ""),
+    enabled: Boolean(details?.id),
+  });
+  const detailsSupport = useQuery({
+    queryKey: ["manager-appointment-support", facilityId, details?.id],
+    queryFn: () => api.support.facilityDetail(facilityId, details?.id ?? ""),
+    enabled: Boolean(
+      facilityId && details?.id && details?.appointmentType === APPOINTMENT_TYPES.SUPPORT,
+    ),
+  });
+  const settlementInspectionId = detailsRental.data?.settlement?.inspectionId;
+  const settlementInspection = useQuery({
+    queryKey: ["manager-appointment-settlement-inspection", settlementInspectionId],
+    queryFn: () => (settlementInspectionId ? api.inspections.get(settlementInspectionId) : null),
+    enabled: Boolean(!detailsInspections.data?.length && settlementInspectionId),
+  });
+  const activeInspection = detailsInspections.data?.[0] ?? settlementInspection.data ?? null;
   // Reset pagination whenever the user changes a filter or search term.
   // biome-ignore lint/correctness/useExhaustiveDependencies: filter and search intentionally reset the local page.
   useEffect(() => setPage(1), [filter, search, d.typeFilter]);
@@ -471,15 +498,29 @@ export function FacilityBookingsView({
         <StaffAssignmentModal booking={staffBooking} isOpen onClose={() => setStaffBooking(null)} />
       )}
       <Dialog open={Boolean(details)} onOpenChange={(open) => !open && setDetailsId(null)}>
-        <DialogContent aria-describedby={undefined} className="max-w-xl sm:max-w-2xl p-5 sm:p-6">
+        <DialogContent
+          aria-describedby={undefined}
+          className="max-w-xl sm:max-w-3xl max-h-[90vh] overflow-y-auto p-5 sm:p-6"
+        >
           {details && (
             <>
               <DialogHeader className="border-b border-slate-100 pb-3 pr-8">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <DialogTitle>{FLOW.appointmentDetails}</DialogTitle>
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <DialogTitle className="text-base font-bold text-slate-900">
+                      {isCompletedDispatchItem(details)
+                        ? M.completedDossierTitle
+                        : FLOW.appointmentDetails}
+                    </DialogTitle>
+                    <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
+                      {details.bookingCode}
+                    </span>
+                  </div>
                   <OperationalBadge value={details.appointmentStatus} />
                 </div>
               </DialogHeader>
+
+              {/* 1. Customer & Appointment General Information */}
               <section className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-sm sm:grid-cols-2">
                 <DetailValue
                   label={FLOW.appointmentType}
@@ -492,6 +533,24 @@ export function FacilityBookingsView({
                   }
                 />
                 <DetailValue label={MB.customer} value={details.contactName} />
+                <DetailValue
+                  label={FLOW.phone}
+                  value={
+                    details.contactPhone ||
+                    detailsRental.data?.customer?.phone ||
+                    detailsSupport.data?.customer?.phone ||
+                    "—"
+                  }
+                />
+                <DetailValue
+                  label={FLOW.email}
+                  value={
+                    details.contactEmail ||
+                    detailsRental.data?.customer?.email ||
+                    detailsSupport.data?.customer?.email ||
+                    "—"
+                  }
+                />
                 <DetailValue
                   label={FLOW.schedule}
                   value={formatDateTime(details.checkInSlotStart)}
@@ -507,27 +566,20 @@ export function FacilityBookingsView({
                       label={FLOW.unitType}
                       value={`${details.unitTypeName}${details.unitTypeSizeLabel ? ` · ${details.unitTypeSizeLabel}` : ""}`}
                     />
-                    {details.assignedUnit && (
-                      <DetailValue
-                        label={FLOW.unit}
-                        value={details.assignedUnit.physicalUnitCode}
-                      />
-                    )}
+                    <DetailValue
+                      label={FLOW.unit}
+                      value={details.assignedUnit?.physicalUnitCode ?? "Chưa chỉ định"}
+                    />
                   </>
                 ) : (
                   <>
-                    <DetailValue
-                      label={FLOW.rentalReference}
-                      value={formatReference(details.rentalId, "KT")}
-                    />
-                    {detailsRental.isPending ? (
-                      <LoadingState variant="detail" />
-                    ) : detailsRental.isError ? (
-                      <ErrorState
-                        message={MB.relatedLoadError}
-                        onRetry={() => void detailsRental.refetch()}
+                    {details.rentalId && (
+                      <DetailValue
+                        label={FLOW.rentalReference}
+                        value={formatReference(details.rentalId, "KT")}
                       />
-                    ) : detailsRental.data ? (
+                    )}
+                    {detailsRental.data && (
                       <>
                         <DetailValue
                           label={FLOW.unit}
@@ -537,17 +589,108 @@ export function FacilityBookingsView({
                           label={FLOW.rentalPeriod}
                           value={`${formatDateTime(detailsRental.data.startAt)} – ${formatDateTime(detailsRental.data.endAt)}`}
                         />
-                        <Link
-                          className="font-semibold text-primary underline underline-offset-2 sm:col-span-2"
-                          href={`/facility-manager/rentals?rentalId=${encodeURIComponent(details.rentalId ?? "")}`}
-                        >
-                          {FLOW.openRentalRecord}
-                        </Link>
                       </>
-                    ) : null}
+                    )}
                   </>
                 )}
               </section>
+
+              {/* 2. Support Ticket Section (if support appointment) */}
+              {details.appointmentType === APPOINTMENT_TYPES.SUPPORT && detailsSupport.data && (
+                <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2 font-bold text-slate-800">
+                    <Headset size={16} className="text-primary" />
+                    <span>{M.supportTicketInfo}</span>
+                  </div>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <DetailValue label={M.supportCategory} value={detailsSupport.data.category} />
+                    <DetailValue label={M.supportPriority} value={detailsSupport.data.priority} />
+                    <div className="sm:col-span-2">
+                      <span className="text-xs text-slate-500 block mb-1">
+                        {M.supportDescription}
+                      </span>
+                      <p className="rounded-lg border border-slate-100 bg-slate-50 p-2.5 text-xs text-slate-800 whitespace-pre-wrap">
+                        {detailsSupport.data.description || detailsSupport.data.subject}
+                      </p>
+                    </div>
+                    {detailsSupport.data.closeReason && (
+                      <div className="sm:col-span-2">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          {M.supportCloseReason}
+                        </span>
+                        <p className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-2.5 text-xs text-emerald-950 whitespace-pre-wrap">
+                          {detailsSupport.data.closeReason}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* 3. Return Settlement Summary (if available) */}
+              {details.appointmentType === APPOINTMENT_TYPES.CHECK_OUT &&
+                detailsRental.data?.settlement && (
+                  <SettlementSummary settlement={detailsRental.data.settlement} />
+                )}
+
+              {/* 4. Inspection Results & Evidence Photos */}
+              {activeInspection && (
+                <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 text-xs sm:text-sm">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-2 font-bold text-slate-800">
+                      <FileCheck size={16} className="text-primary" />
+                      <span>{M.inspectionResult}</span>
+                    </div>
+                    <OperationalBadge value={activeInspection.status} />
+                  </div>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {activeInspection.condition && (
+                      <DetailValue
+                        label={M.inspectionCondition}
+                        value={
+                          M.conditionLabels[activeInspection.condition] ??
+                          activeInspection.condition
+                        }
+                      />
+                    )}
+                    {activeInspection.inspectDoneAt && (
+                      <DetailValue
+                        label={M.inspectDoneAt}
+                        value={formatDateTime(activeInspection.inspectDoneAt)}
+                      />
+                    )}
+                    {activeInspection.notes && (
+                      <div className="sm:col-span-2">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          {M.inspectionNotes}
+                        </span>
+                        <p className="rounded-lg border border-slate-100 bg-slate-50 p-2.5 text-xs text-slate-800 whitespace-pre-wrap">
+                          {activeInspection.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Evidence photos uploaded by staff */}
+                  {activeInspection.evidence && activeInspection.evidence.length > 0 ? (
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center gap-2 font-semibold text-slate-700 text-xs mb-2.5">
+                        <Camera size={14} className="text-primary" />
+                        <span>
+                          {M.inspectionEvidence} ({activeInspection.evidence.length})
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {activeInspection.evidence.map((photo) => (
+                          <InspectionPhotoCard key={photo.id} photo={photo} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic pt-1">{M.noEvidencePhotos}</p>
+                  )}
+                </section>
+              )}
             </>
           )}
         </DialogContent>
