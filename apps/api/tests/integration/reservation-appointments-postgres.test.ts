@@ -1121,7 +1121,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     expect((await appointmentService.getAppointment(id, f.manager)).status).toBe(Status.CANCELLED);
   });
 
-  test("appointment tasks require assignment, schedule, and completed handover", async () => {
+  test("appointment tasks allow early starts but require assignment, confirmation, and completed handover", async () => {
     const f = await fixture();
     const paid = await scheduled(f);
     await expect(
@@ -1148,11 +1148,14 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
       .from(facilityTasks)
       .where(eq(facilityTasks.referenceId, paid.appointment.id));
     if (!task) throw new Error("Missing task");
+    setSystemTime(new Date(`${f.date}T08:30:00+07:00`));
     await expect(
       taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff),
-    ).rejects.toMatchObject({ statusCode: 409 });
-    setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
-    await taskService.update(task.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff);
+    ).resolves.toMatchObject({ status: FacilityTaskStatus.IN_PROGRESS });
+    const context = await db.transaction((tx) =>
+      appointmentService.requireInspectionContext(tx, paid.appointment.id, f.staff),
+    );
+    expect(context.appointment.status).toBe(Status.CONFIRMED);
     await expect(
       appointmentService.updateAppointment(
         paid.appointment.id,
@@ -1178,7 +1181,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
   });
 
   for (const deductionAmount of [0, 100000, 150000]) {
-    test(`return settlement handles deductions ${deductionAmount}, maintenance and subsequent debt collection`, async () => {
+    test(`return settlement before the appointment handles deductions ${deductionAmount}, maintenance and subsequent debt collection`, async () => {
       const f = await fixture();
       const paid = await checkout(f);
       await paymentWorkflow.processEvent(paid.event);
@@ -1215,7 +1218,7 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
         { status: Status.CONFIRMED, assignedStaffId: f.id.staff },
         f.manager,
       );
-      setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+      setSystemTime(new Date(`${f.date}T08:30:00+07:00`));
       const [task] = await db
         .select()
         .from(facilityTasks)
