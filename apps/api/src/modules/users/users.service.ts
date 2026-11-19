@@ -149,6 +149,9 @@ export class UsersService {
       if (existing.role === "SYSTEM_ADMIN" && (disabling || roleChanged)) {
         throw new ForbiddenError(USER_MESSAGES.adminProtected);
       }
+      if (existing.role === "CUSTOMER" && roleChanged) {
+        throw new ForbiddenError(USER_MESSAGES.customerRoleProtected);
+      }
       if ((roleChanged || disabling) && (await this.usersRepository.hasOpenWork(id, tx))) {
         throw new ConflictError(USER_MESSAGES.openWorkPreventsChange);
       }
