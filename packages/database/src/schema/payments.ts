@@ -79,7 +79,7 @@ export const payments = pgTable(
   (table) => [
     check(
       "payments_context_valid",
-      sql`(${table.type} = 'CHARGE' AND ${table.debtId} IS NULL AND num_nonnulls(${table.bookingId}, ${table.reservationId}, ${table.renewalId}) = 1 AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.type} = 'DEPOSIT_REFUND' AND ${table.debtId} IS NULL AND num_nonnulls(${table.bookingId}, ${table.reservationId}) <= 1 AND ${table.rentalId} IS NOT NULL AND ${table.renewalId} IS NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.holdTokenHash} IS NULL AND ${table.status} IN ('REFUND_PENDING', 'REFUNDED')) OR (${table.type} = 'DEBT_COLLECTION' AND ${table.debtId} IS NOT NULL AND ${table.rentalId} IS NOT NULL AND num_nonnulls(${table.bookingId}, ${table.reservationId}, ${table.renewalId}, ${table.sourcePaymentId}, ${table.provider}, ${table.providerPaymentId}, ${table.holdTokenHash}) = 0 AND ${table.status} = 'SUCCEEDED' AND ${table.paidAt} IS NOT NULL AND ${table.recordedBy} IS NOT NULL AND ${table.method} IS NOT NULL AND ${table.totalAmount} > 0)`,
+      sql`(${table.type} = 'CHARGE' AND ${table.debtId} IS NULL AND num_nonnulls(${table.bookingId}, ${table.reservationId}, ${table.renewalId}) = 1 AND ${table.rentalId} IS NULL AND ${table.sourcePaymentId} IS NULL AND ${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ${table.holdTokenHash} IS NOT NULL) OR (${table.type} = 'DEPOSIT_REFUND' AND ${table.debtId} IS NULL AND num_nonnulls(${table.bookingId}, ${table.reservationId}) <= 1 AND ${table.rentalId} IS NOT NULL AND ${table.renewalId} IS NULL AND ${table.sourcePaymentId} IS NOT NULL AND ${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.holdTokenHash} IS NULL AND ${table.status} IN ('REFUND_PENDING', 'REFUNDED')) OR (${table.type} = 'DEBT_COLLECTION' AND ${table.debtId} IS NOT NULL AND ${table.rentalId} IS NOT NULL AND num_nonnulls(${table.bookingId}, ${table.reservationId}, ${table.renewalId}, ${table.sourcePaymentId}, ${table.holdTokenHash}) = 0 AND ${table.totalAmount} > 0 AND ((${table.provider} IS NULL AND ${table.paymentCode} IS NULL AND ${table.providerPaymentId} IS NULL AND ${table.status} = 'SUCCEEDED' AND ${table.paidAt} IS NOT NULL AND ${table.recordedBy} IS NOT NULL AND ${table.method} IS NOT NULL) OR (${table.provider} IS NOT NULL AND ${table.paymentCode} IS NOT NULL AND ${table.providerPaymentId} IS NOT NULL AND ${table.expiresAt} IS NOT NULL AND ${table.method} IS NULL AND ((${table.status} = 'SUCCEEDED' AND ${table.paidAt} IS NOT NULL) OR (${table.status} IN ('PENDING', 'FAILED') AND ${table.paidAt} IS NULL)))))`,
     ),
     check(
       "payments_manual_reference_valid",
@@ -100,6 +100,9 @@ export const payments = pgTable(
       .on(table.renewalId)
       .where(sql`${table.type} = 'CHARGE'`),
     uniqueIndex("payments_idempotency_idx").on(table.idempotencyKey),
+    uniqueIndex("payments_debt_pending_idx")
+      .on(table.debtId)
+      .where(sql`${table.type} = 'DEBT_COLLECTION' AND ${table.status} = 'PENDING'`),
     uniqueIndex("payments_rental_refund_idx")
       .on(table.rentalId)
       .where(sql`${table.type} = 'DEPOSIT_REFUND'`),

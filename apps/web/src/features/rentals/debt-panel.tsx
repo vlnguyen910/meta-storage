@@ -15,10 +15,11 @@ import {
   ChevronUp,
   CreditCard,
   History,
+  QrCode,
   Receipt,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { submitSepayCheckout } from "@/lib/sepay-checkout";
 import { cn } from "@/lib/utils";
 import { DEBT_MESSAGES as M } from "./debts.messages";
 
@@ -309,7 +311,15 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
   const detail = useQuery({
     queryKey: ["debt", userId, debt.id],
     queryFn: () => api.debts.get(debt.id),
+    // A SePay payment settles outside this page; keep checking while the debt is open.
+    refetchInterval: (query) => (query.state.data?.status === "PAID" ? false : 5000),
   });
+  // Once the open row reports a new status, reload the list so both agree.
+  const detailStatus = detail.data?.status;
+  useEffect(() => {
+    if (detailStatus && detailStatus !== debt.status)
+      void client.invalidateQueries({ queryKey: ["debts"] });
+  }, [detailStatus, debt.status, client]);
   const form = useForm<DebtPaymentInput>({
     resolver: zodResolver(DebtPaymentInputSchema),
     defaultValues: { method: "CASH", idempotencyKey: crypto.randomUUID() },
@@ -327,6 +337,13 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
       ]);
     },
   });
+
+  const startSepay = useMutation({
+    mutationFn: () => api.debts.startSepay(debt.id),
+    onSuccess: (session) => submitSepayCheckout(session),
+  });
+
+  const viaSepay = form.watch("method") === "BANK_TRANSFER";
 
   if (detail.isPending) return <LoadingState variant="detail" />;
   if (detail.isError)
@@ -391,21 +408,30 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
 
           <form
             className="grid gap-3 sm:grid-cols-2"
-            onSubmit={form.handleSubmit((input) => collect.mutate(input))}
+            onSubmit={
+              viaSepay
+                ? (event) => {
+                    event.preventDefault();
+                    startSepay.mutate();
+                  }
+                : form.handleSubmit((input) => collect.mutate(input))
+            }
           >
-            <label className="block text-xs font-semibold text-slate-700">
-              <span className="block mb-1">{M.amount}</span>
-              <input
-                type="number"
-                required
-                min={1}
-                max={Number(detail.data.remainingAmount)}
-                step={1}
-                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
-                disabled={collect.isPending}
-                {...form.register("amount", { valueAsNumber: true })}
-              />
-            </label>
+            {!viaSepay && (
+              <label className="block text-xs font-semibold text-slate-700">
+                <span className="block mb-1">{M.amount}</span>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  max={Number(detail.data.remainingAmount)}
+                  step={1}
+                  className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
+                  disabled={collect.isPending}
+                  {...form.register("amount", { valueAsNumber: true })}
+                />
+              </label>
+            )}
 
             <div className="block text-xs font-semibold text-slate-700">
               <span className="block mb-1">{M.method}</span>
@@ -433,20 +459,8 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
               </Select>
             </div>
 
-            {form.watch("method") === "BANK_TRANSFER" && (
-              <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">
-                <span className="block mb-1">{M.reference}</span>
-                <input
-                  required
-                  placeholder="Nhập mã biên lai / tham chiếu giao dịch ngân hàng"
-                  className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
-                  maxLength={128}
-                  disabled={collect.isPending}
-                  {...form.register("reference", {
-                    setValueAs: (value) => value?.trim() || undefined,
-                  })}
-                />
-              </label>
+            {viaSepay && (
+              <p className="text-xs leading-5 text-slate-600 sm:col-span-2">{M.sepayHint}</p>
             )}
 
             {Object.values(form.formState.errors).map((error) => (
@@ -462,14 +476,26 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
             <div className="sm:col-span-2 flex justify-end pt-1">
               <Button
                 type="submit"
-                disabled={collect.isPending}
-                loading={collect.isPending}
-                className="min-h-0 h-8.5 px-4 text-xs font-bold"
+                disabled={collect.isPending || startSepay.isPending}
+                loading={collect.isPending || startSepay.isPending}
+                className="min-h-0 h-8.5 gap-1.5 px-4 text-xs font-bold"
               >
-                {M.collect}
+                {viaSepay ? (
+                  <>
+                    <QrCode size={14} aria-hidden="true" />
+                    {M.sepayStart}
+                  </>
+                ) : (
+                  M.collect
+                )}
               </Button>
             </div>
           </form>
+          {startSepay.isError && (
+            <p role="alert" className="text-xs font-semibold text-rose-600">
+              {M.sepayError}
+            </p>
+          )}
         </div>
       )}
 

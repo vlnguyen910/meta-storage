@@ -15,6 +15,7 @@ import {
   inArray,
   lte,
   or,
+  PaymentType,
   paymentProviderEvents,
   payments,
   rentalRenewals,
@@ -105,17 +106,70 @@ export class PaymentsRepository {
   }
 
   listDebtPayments(id: string) {
-    return this.db
-      .select({
-        id: payments.id,
-        totalAmount: payments.totalAmount,
-        method: payments.method,
-        reference: payments.reference,
-        paidAt: payments.paidAt,
-      })
+    return (
+      this.db
+        .select({
+          id: payments.id,
+          totalAmount: payments.totalAmount,
+          method: payments.method,
+          reference: payments.reference,
+          paidAt: payments.paidAt,
+        })
+        .from(payments)
+        // Open or closed QR attempts are not received money.
+        .where(and(eq(payments.debtId, id), eq(payments.status, "SUCCEEDED")))
+        .orderBy(desc(payments.paidAt), payments.id)
+    );
+  }
+
+  async findPendingDebtPaymentId(id: string) {
+    const [row] = await this.db
+      .select({ id: payments.id })
       .from(payments)
-      .where(eq(payments.debtId, id))
-      .orderBy(desc(payments.paidAt), payments.id);
+      .where(
+        and(
+          eq(payments.debtId, id),
+          eq(payments.type, PaymentType.DEBT_COLLECTION),
+          eq(payments.status, "PENDING"),
+          eq(payments.provider, "sepay"),
+        ),
+      );
+    return row?.id;
+  }
+
+  async findDebtPaymentByCode(paymentCode: string) {
+    const [row] = await this.db
+      .select()
+      .from(payments)
+      .where(
+        and(eq(payments.paymentCode, paymentCode), eq(payments.type, PaymentType.DEBT_COLLECTION)),
+      );
+    return row;
+  }
+
+  async lockPendingDebtPayments(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    debtId: string,
+  ) {
+    return tx
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.debtId, debtId),
+          eq(payments.type, PaymentType.DEBT_COLLECTION),
+          eq(payments.status, "PENDING"),
+        ),
+      )
+      .for("update");
+  }
+
+  updatePayment(
+    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
+    id: string,
+    input: Partial<typeof payments.$inferInsert>,
+  ) {
+    return tx.update(payments).set(input).where(eq(payments.id, id));
   }
 
   async lockDebt(tx: Parameters<Parameters<Database["transaction"]>[0]>[0], id: string) {
