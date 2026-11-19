@@ -29,12 +29,15 @@ import {
   titleClass,
   UnitPlaceholder,
 } from "@/features/facility-flow/flow-ui";
-import type { DispatchAppointmentType, DispatchItem } from "@/features/facility-flow/use-dispatch";
+import type {
+  DispatchAppointmentType,
+  DispatchFilterTab,
+  DispatchItem,
+} from "@/features/facility-flow/use-dispatch";
 import { readiness, useDispatch } from "@/features/facility-flow/use-dispatch";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatBookingAmount, formatBookingDateTime as formatDateTime } from "./booking-display";
-import { BookingFilterChips } from "./booking-filter-chips";
 import { FACILITY_BOOKINGS_MESSAGES as M } from "./facility-bookings-view.messages";
 import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { ManagerBookingRow } from "./manager-booking-row";
@@ -162,8 +165,8 @@ export function FacilityBookingsView({
 
         {/* Appointment Type Quick Filter Tabs */}
         {showingAll && (
-          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 pb-3">
-            <span className="text-xs font-bold text-slate-500 mr-1 select-none">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 select-none text-xs font-bold text-slate-500">
               {M.appointmentTypeFilter}
             </span>
             {[
@@ -183,19 +186,24 @@ export function FacilityBookingsView({
                 label: M.supportAppointmentType,
                 dot: "bg-amber-500",
               },
+              {
+                id: "COMPLETED",
+                label: M.completedAppointmentType,
+                dot: "bg-teal-500",
+              },
             ].map((typeItem) => {
               const active = d.typeFilter === typeItem.id;
-              const count = d.typeCount(typeItem.id as "ALL" | APPOINTMENT_TYPES);
+              const count = d.typeCount(typeItem.id as DispatchFilterTab);
               return (
                 <button
                   key={typeItem.id}
                   type="button"
-                  onClick={() => d.setTypeFilter(typeItem.id as "ALL" | APPOINTMENT_TYPES)}
+                  onClick={() => d.setTypeFilter(typeItem.id as DispatchFilterTab)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border",
+                    "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all",
                     active
-                      ? "bg-primary text-white border-primary shadow-xs"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900",
+                      ? "border-primary bg-primary text-white shadow-xs"
+                      : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                   )}
                 >
                   {typeItem.dot && (
@@ -217,46 +225,6 @@ export function FacilityBookingsView({
             })}
           </div>
         )}
-
-        <BookingFilterChips
-          ids={
-            showingAll
-              ? [
-                  "ALL",
-                  "NEEDS_UNIT",
-                  "NEEDS_STAFF",
-                  "PAYMENT_PENDING",
-                  "READY",
-                  "SLOT_MISSING",
-                  "INSPECTING",
-                  "READY_HANDOVER",
-                  "TOO_EARLY",
-                  "CHECKED_IN",
-                  "SCHEDULED",
-                  "CONFIRMED",
-                  "COMPLETED",
-                  "CANCELLED",
-                  "NO_SHOW",
-                ]
-              : appointmentType === APPOINTMENT_TYPES.CHECK_IN
-                ? [
-                    "ALL",
-                    "NEEDS_UNIT",
-                    "NEEDS_STAFF",
-                    "READY",
-                    "INSPECTING",
-                    "READY_HANDOVER",
-                    "TOO_EARLY",
-                    "NO_SHOW",
-                    "CHECKED_IN",
-                  ]
-                : ["ALL", "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED"]
-          }
-          selected={d.filter}
-          count={(id) => (id === "ALL" ? d.bookings.length : d.count(id))}
-          onChange={d.setFilter}
-          labels={{ ...labels, ALL: FLOW.all }}
-        />
       </Panel>
       <p role="status" aria-live="polite" className="text-sm text-[#404945]">
         {d.query.isFetching ? FLOW.refreshing : FLOW.results(pageItems.length, d.filtered.length)}
@@ -279,6 +247,7 @@ export function FacilityBookingsView({
             className="mt-4"
             variant="secondary"
             onClick={() => {
+              d.setTypeFilter("ALL");
               d.setFilter("ALL");
               d.setSearch("");
             }}

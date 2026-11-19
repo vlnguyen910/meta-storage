@@ -1,6 +1,6 @@
 import type { AppointmentRecordDto } from "@metastorage/contracts";
 import { expect, it } from "vitest";
-import { appointmentItem, readiness } from "./use-dispatch";
+import { appointmentItem, isCompletedDispatchItem, readiness } from "./use-dispatch";
 
 it("keeps appointment IDs for actions and reservation IDs for the incumbent display", () => {
   const a = {
@@ -80,4 +80,70 @@ it("shows distinct compact references for seeded reservations and preserves full
   expect(first.bookingCode).toBe("BK-8100-000005");
   expect(second.bookingCode).toBe("BK-8100-000006");
   expect(first.contactName).toBe("Trần Ngọc Anh");
+});
+
+it("correctly identifies completed dispatch items across check-in, check-out, and support", () => {
+  const completedCheckIn = appointmentItem({
+    id: "app-check-in",
+    appointmentType: "CHECK_IN",
+    status: "COMPLETED",
+    customerId: "cust-1",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(completedCheckIn.status).toBe("CHECKED_IN");
+  expect(isCompletedDispatchItem(completedCheckIn)).toBe(true);
+
+  const completedReturn = appointmentItem({
+    id: "app-return",
+    appointmentType: "CHECK_OUT",
+    status: "COMPLETED",
+    customerId: "cust-2",
+    rentalId: "rental-1",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(isCompletedDispatchItem(completedReturn)).toBe(true);
+
+  const completedSupport = appointmentItem({
+    id: "app-support",
+    appointmentType: "SUPPORT",
+    status: "COMPLETED",
+    customerId: "cust-3",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(isCompletedDispatchItem(completedSupport)).toBe(true);
+
+  const activeCheckIn = appointmentItem({
+    id: "app-active-ci",
+    appointmentType: "CHECK_IN",
+    status: "CONFIRMED",
+    paymentStatus: "PENDING",
+    customerId: "cust-4",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(isCompletedDispatchItem(activeCheckIn)).toBe(false);
+
+  const activeReturn = appointmentItem({
+    id: "app-active-ret",
+    appointmentType: "CHECK_OUT",
+    status: "CONFIRMED",
+    customerId: "cust-5",
+    rentalId: "rental-2",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(isCompletedDispatchItem(activeReturn)).toBe(false);
+
+  const activeSupport = appointmentItem({
+    id: "app-active-sup",
+    appointmentType: "SUPPORT",
+    status: "SCHEDULED",
+    customerId: "cust-6",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(isCompletedDispatchItem(activeSupport)).toBe(false);
 });

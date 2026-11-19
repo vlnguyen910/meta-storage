@@ -5,4 +5,5 @@ export const FACILITY_BOOKINGS_MESSAGES = {
   returnAppointmentType: "Lịch trả kho",
   supportAppointmentType: "Lịch hỗ trợ",
   supportCustomerType: "Hỗ trợ khách hàng",
+  completedAppointmentType: "Đã hoàn tất",
 } as const;
