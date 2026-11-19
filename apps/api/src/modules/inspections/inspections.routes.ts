@@ -178,6 +178,7 @@ export const inspectionsRoutes: FastifyPluginAsync = async (app) => {
   typed.patch(
     "/inspections/:id",
     {
+      bodyLimit: 100 * 1024 * 1024,
       preHandler: [requireRole(UserRole.FACILITY_STAFF)],
       schema: {
         tags: ["Inspections"],

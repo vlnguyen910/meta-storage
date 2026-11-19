@@ -28,8 +28,16 @@ import type { FacilityOption } from "./management.types";
 
 export function managementError(error: unknown, fallback: string = F5.saveError) {
   if (isAxiosError(error)) {
-    const message = error.response?.data?.error?.message;
-    if (typeof message === "string") return message;
+    if (error.response?.status === 413) {
+      return "Dung lượng ảnh tải lên vượt quá giới hạn cho phép. Vui lòng chọn ảnh có dung lượng nhỏ hơn.";
+    }
+    const message = error.response?.data?.error?.message ?? error.response?.data?.message;
+    if (typeof message === "string") {
+      if (message.includes("Request body is too large") || message.includes("too large")) {
+        return "Dung lượng ảnh tải lên vượt quá giới hạn cho phép. Vui lòng chọn ảnh có dung lượng nhỏ hơn.";
+      }
+      return message;
+    }
   }
   return fallback;
 }
