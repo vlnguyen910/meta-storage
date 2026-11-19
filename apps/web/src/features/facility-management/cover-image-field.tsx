@@ -26,11 +26,12 @@ export function CoverImageField({
   const handleFile = async (file: File | undefined) => {
     setUploadError(undefined);
     if (!file) return;
-    if (
-      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > maxMb * 1024 * 1024
-    ) {
-      setUploadError(F5.coverFileError);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setUploadError(F5.coverFileFormatError);
+      return;
+    }
+    if (file.size > maxMb * 1024 * 1024) {
+      setUploadError(F5.coverFileSizeError(maxMb));
       return;
     }
     try {

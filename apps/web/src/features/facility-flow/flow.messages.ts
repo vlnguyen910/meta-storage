@@ -321,6 +321,9 @@ export const FLOW = {
   upload: "Chụp ảnh / Tải lên",
   removePhoto: "Xóa ảnh",
   noPhotos: "Chưa có bằng chứng ảnh. Tải ảnh thực địa để lưu cùng biên bản.",
+  photoFormatError: "Định dạng ảnh không hợp lệ. Vui lòng chọn file JPEG, PNG hoặc WebP.",
+  photoSizeError: (maxMb: number = 3) =>
+    `Dung lượng ảnh vượt quá giới hạn cho phép (tối đa ${maxMb} MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn.`,
   photoError: "Ảnh phải là JPEG, PNG hoặc WebP.",
   photoLimit: (maxCount: number = 8) => `Biên bản chỉ cho phép tối đa ${maxCount} ảnh.`,
   principles: "Nguyên tắc vận hành",
