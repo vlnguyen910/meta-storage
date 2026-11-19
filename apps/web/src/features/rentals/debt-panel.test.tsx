@@ -64,14 +64,13 @@ test("Staff retries a failed receipt with the same idempotency key", async () =>
       { timeout: 3000 },
     ),
   );
-  await user.type(await screen.findByLabelText("Số tiền đã nhận (VND)"), "20000");
-  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
+  await user.click(await screen.findByRole("button", { name: "Xác nhận đã thanh toán" }));
   await screen.findByRole("alert");
-  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
+  await user.click(screen.getByRole("button", { name: "Xác nhận đã thanh toán" }));
   await waitFor(() => expect(mocks.collect).toHaveBeenCalledTimes(2));
   expect(mocks.collect.mock.calls[0]?.[1]).toEqual(mocks.collect.mock.calls[1]?.[1]);
   expect(mocks.collect.mock.calls[0]?.[1]).toMatchObject({
-    amount: 20000,
+    amount: 50000,
     method: "CASH",
     idempotencyKey: expect.any(String),
   });
@@ -84,7 +83,9 @@ test.each(["FACILITY_MANAGER", "CUSTOMER"])(
     view();
     await user.click(await screen.findByRole("button", { name: "Xem lịch sử" }));
     await screen.findByText("Chưa ghi nhận khoản thu nào.");
-    expect(screen.queryByLabelText("Số tiền đã nhận (VND)")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Xác nhận đã thanh toán" }),
+    ).not.toBeInTheDocument();
   },
 );
 test("settlement remains visible when refund and debt are zero", () => {
