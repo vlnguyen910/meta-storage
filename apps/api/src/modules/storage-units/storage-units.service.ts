@@ -105,9 +105,7 @@ export class StorageUnitsService {
       input.unitId,
       ...(current ? [current.physicalUnitId] : []),
     ]);
-    if (current?.physicalUnitId === input.unitId) return;
-    if (await this.repository.hasReservationInspection(tx, input.reservationId))
-      throw new ConflictError(STORAGE_UNIT_MESSAGES.unitHasOperations);
+    if (current?.physicalUnitId === input.unitId) return { changed: false, reassigned: false };
     await this.requireHandoverUnit(tx, { ...input, taskId: input.reservationId });
     if (current)
       await this.repository.closeReservationAssignment(
@@ -123,6 +121,7 @@ export class StorageUnitsService {
       reason: input.reason,
     });
     activity.changed = true;
+    return { changed: true, reassigned: Boolean(current) };
   }
   findReservationAssignment(tx: TaskTransaction, id: string) {
     return this.repository.findReservationAssignment(tx, id);

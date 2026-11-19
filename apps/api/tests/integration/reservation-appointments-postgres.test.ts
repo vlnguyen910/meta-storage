@@ -982,6 +982,97 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     ).toBeNull();
   });
 
+  test("allows manager to reassign another unit of the same type after check-in inspection issue, resets handover task, and notifies staff", async () => {
+    const f = await fixture();
+    const secondUnitId = randomUUID();
+    await db.insert(storageUnits).values({
+      id: secondUnitId,
+      facilityId: f.id.facility,
+      unitTypeId: f.id.type,
+      code: secondUnitId,
+    });
+    const notifiedStaff: string[] = [];
+    const serviceWithNotifications = createAppointmentsService(db, {
+      assignedAppointment: async (_id: string, staffId: string) => {
+        notifiedStaff.push(staffId);
+      },
+      appointmentChanged: async () => undefined,
+    } as never);
+    try {
+      const paid = await scheduled(f);
+      await serviceWithNotifications.updateAppointment(
+        paid.appointment.id,
+        {
+          assignedStaffId: f.id.staff,
+          physicalUnitId: f.id.unit,
+          status: Status.CONFIRMED,
+        },
+        f.manager,
+      );
+      const [firstTask] = await db
+        .select()
+        .from(facilityTasks)
+        .where(eq(facilityTasks.referenceId, paid.appointment.id));
+      if (!firstTask) throw new Error("Missing initial task");
+      setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+      await taskService.update(firstTask.id, { status: FacilityTaskStatus.IN_PROGRESS }, f.staff);
+      await db.insert(inspections).values({
+        storageUnitId: f.id.unit,
+        reservationId: paid.reservation.id,
+        inspectedBy: f.id.staff,
+        taskId: firstTask.id,
+        inspectionType: "CHECK_IN",
+        status: "IN_PROGRESS",
+        condition: "MAJOR_DAMAGE",
+        notes: "Cửa kho bị kẹt, cần đổi ô kho khác",
+        inspectedAt: new Date(),
+      });
+
+      notifiedStaff.length = 0;
+      await serviceWithNotifications.updateAppointment(
+        paid.appointment.id,
+        {
+          physicalUnitId: secondUnitId,
+          assignmentReason: "Đổi sang ô kho mới do ô cũ bị kẹt cửa",
+        },
+        f.manager,
+      );
+
+      expect(notifiedStaff).toEqual([f.id.staff]);
+      const updatedAppointment = await serviceWithNotifications.getAppointment(
+        paid.appointment.id,
+        f.staff,
+      );
+      expect(updatedAppointment.assignedUnit?.physicalUnitId).toBe(secondUnitId);
+      expect(updatedAppointment.handoverStage).toBe("WAITING_CUSTOMER");
+      expect(
+        (await db.select().from(storageUnits).where(eq(storageUnits.id, f.id.unit)))[0]?.status,
+      ).toBe("MAINTENANCE");
+      expect(
+        (await db.select().from(storageUnits).where(eq(storageUnits.id, secondUnitId)))[0]?.status,
+      ).toBe("RESERVED");
+
+      const allTasks = await db
+        .select()
+        .from(facilityTasks)
+        .where(eq(facilityTasks.referenceId, paid.appointment.id));
+      expect(allTasks.find((t) => t.id === firstTask.id)?.status).toBe(
+        FacilityTaskStatus.CANCELLED,
+      );
+      const newTask = allTasks.find((t) => t.id !== firstTask.id);
+      expect(newTask).toMatchObject({
+        type: FacilityTaskType.CHECK_IN_HANDOVER,
+        referenceType: FacilityTaskReferenceType.APPOINTMENT,
+        assignedStaffId: f.id.staff,
+        status: FacilityTaskStatus.ASSIGNED,
+      });
+    } finally {
+      await db.delete(inspections).where(eq(inspections.storageUnitId, secondUnitId));
+      await db.delete(unitAssignments).where(eq(unitAssignments.physicalUnitId, secondUnitId));
+      await db.delete(storageUnits).where(eq(storageUnits.id, secondUnitId));
+    }
+  });
+
   test("migration restores missing seeded handover tasks once and leaves closed appointments closed", async () => {
     const f = await fixture();
     const id = randomUUID();

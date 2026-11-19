@@ -161,42 +161,32 @@ export function StaffUnitInspectionView({
                     {item.label}
                   </Text>
                   <View className="flex-row gap-2">
-                    {(["PASS", "FAIL"] as const).map((value) => (
-                      <Pressable
-                        key={value}
-                        accessibilityRole="radio"
-                        accessibilityLabel={`${item.label}: ${value === "PASS" ? M.pass : M.fail}`}
-                        accessibilityState={{
-                          checked: selected?.result === value,
-                          disabled: locked || flow.busy,
-                        }}
-                        disabled={locked || flow.busy}
-                        onPress={() => setChecklistResult(item.code, value)}
-                        className={`min-h-11 flex-1 items-center justify-center rounded-lg border ${selected?.result === value ? "border-primary bg-primary" : "border-outline-variant bg-surface"}`}
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={`${item.label}: ${M.pass}`}
+                      accessibilityState={{
+                        checked: selected?.result === "PASS",
+                        disabled: locked || flow.busy,
+                      }}
+                      disabled={locked || flow.busy}
+                      onPress={() => {
+                        if (selected?.result === "PASS") {
+                          setResults((previous) =>
+                            previous.filter((entry) => entry.itemCode !== item.code),
+                          );
+                        } else {
+                          setChecklistResult(item.code, "PASS");
+                        }
+                      }}
+                      className={`min-h-11 flex-1 items-center justify-center rounded-lg border ${selected?.result === "PASS" ? "border-primary bg-primary" : "border-outline-variant bg-surface"}`}
+                    >
+                      <Text
+                        className={`font-semibold ${selected?.result === "PASS" ? "text-primary-foreground" : "text-muted"}`}
                       >
-                        <Text
-                          className={`font-semibold ${selected?.result === value ? "text-primary-foreground" : "text-muted"}`}
-                        >
-                          {value === "PASS" ? M.pass : M.fail}
-                        </Text>
-                      </Pressable>
-                    ))}
+                        {M.pass}
+                      </Text>
+                    </Pressable>
                   </View>
-                  {selected?.result === "FAIL" ? (
-                    <Field
-                      label={M.returnChecklistNote}
-                      value={selected.note ?? ""}
-                      maxLength={1000}
-                      editable={!locked && !flow.busy}
-                      onChangeText={(note) =>
-                        setResults((previous) =>
-                          previous.map((entry) =>
-                            entry.itemCode === item.code ? { ...entry, note } : entry,
-                          ),
-                        )
-                      }
-                    />
-                  ) : null}
                 </View>
               );
             })}

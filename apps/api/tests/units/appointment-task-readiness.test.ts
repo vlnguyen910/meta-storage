@@ -123,4 +123,46 @@ describe("appointment task readiness", () => {
     ).rejects.toMatchObject({ statusCode: 409 });
     expect(f.writes).toEqual([]);
   });
+  test("resets an in-progress appointment task to a fresh assigned task when unit is reassigned", async () => {
+    const events: string[] = [];
+    const repository = {
+      findActiveAppointmentTask: async () => [
+        {
+          id: "old-task",
+          facilityId: "facility",
+          referenceId: "appointment",
+          referenceType: FacilityTaskReferenceType.APPOINTMENT,
+          type: FacilityTaskType.CHECK_IN_HANDOVER,
+          assignedStaffId: "staff",
+          status: FacilityTaskStatus.IN_PROGRESS,
+        },
+      ],
+      hasTaskInspection: async () => true,
+      setWorkflowStatus: async (_tx: unknown, id: string, status: FacilityTaskStatus) => {
+        events.push(`cancel:${id}:${status}`);
+      },
+      createAppointmentTask: async (
+        _tx: unknown,
+        input: { assignedStaffId: string; type: string },
+      ) => {
+        events.push(`create:${input.type}:${input.assignedStaffId}`);
+      },
+    } as unknown as FacilityTasksRepository;
+    const assignments = {
+      requireActiveAssignments: async () => undefined,
+    } as unknown as FacilityAssignmentsService;
+    const service = new FacilityTasksService(repository, assignments);
+    await service.assignAppointment(
+      {} as never,
+      {
+        id: "appointment",
+        facilityId: "facility",
+        appointmentType: "CHECK_IN",
+        assignedStaffId: "staff",
+      } as never,
+      "manager",
+      { resetInProgress: true },
+    );
+    expect(events).toEqual(["cancel:old-task:CANCELLED", "create:CHECK_IN_HANDOVER:staff"]);
+  });
 });

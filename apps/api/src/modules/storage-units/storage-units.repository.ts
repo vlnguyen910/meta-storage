@@ -176,10 +176,11 @@ export class StorageUnitsRepository {
         and(eq(unitAssignments.reservationId, reservationId), eq(unitAssignments.status, "ACTIVE")),
       )
       .returning();
+    const releasedUnitStatus = status === "REASSIGNED" ? "MAINTENANCE" : "AVAILABLE";
     for (const row of rows)
       await tx
         .update(storageUnits)
-        .set({ status: "AVAILABLE", updatedAt: new Date() })
+        .set({ status: releasedUnitStatus, updatedAt: new Date() })
         .where(and(eq(storageUnits.id, row.physicalUnitId), eq(storageUnits.status, "RESERVED")));
   }
   async createReservationAssignment(
