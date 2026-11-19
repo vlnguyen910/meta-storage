@@ -3,6 +3,10 @@ export const DEBT_MESSAGES = {
   description: "Theo dõi khoản phí còn phải trả sau khi khấu trừ tiền cọc.",
   unitLabel: "khoản phí",
   work: "Công việc",
+  sepayStart: "Thanh toán qua SePay",
+  sepayHint:
+    "Khách thanh toán đủ số tiền còn lại bằng QR trên trang SePay; hệ thống tự xác nhận khi nhận được tiền.",
+  sepayError: "Không tạo được thanh toán SePay. Vui lòng thử lại.",
   customerUnit: "Khách hàng & Ô kho",
   emptyRental: "Không có khoản phí phát sinh cho kỳ thuê này.",
   empty: "Không có khoản phí phát sinh trong danh sách này.",
