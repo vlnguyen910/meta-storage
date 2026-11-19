@@ -8,7 +8,7 @@ export const FACILITY_TASK_MESSAGES = {
     "Không thể đổi trạng thái công việc: chỉ có thể bắt đầu khi task ĐÃ GIAO hoặc hoàn tất khi task ĐANG THỰC HIỆN.",
   appointmentNotConfirmed: "Không thể bắt đầu kiểm tra trả kho vì lịch hẹn chưa được xác nhận.",
   appointmentSlotUnavailable: "Không thể bắt đầu kiểm tra trả kho vì không tìm thấy khung giờ hẹn.",
-  appointmentNotStarted: "Chưa đến giờ hẹn nên chưa thể bắt đầu kiểm tra trả kho.",
+  appointmentNotStarted: "Chưa đến giờ hẹn nên chưa thể bắt đầu công việc.",
   appointmentWindowClosed:
     "Đã hết thời gian tiếp nhận của lịch hẹn nên không thể bắt đầu kiểm tra trả kho.",
   handoverTaskAutomatic:

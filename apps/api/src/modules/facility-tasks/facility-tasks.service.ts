@@ -237,7 +237,12 @@ export class FacilityTasksService {
       const sameDayAllowed =
         appointment.appointmentType === "CHECK_IN" &&
         this.appointmentSlots?.allowsCheckInDuringSameDaySlot(slot, appointment.scheduledDate, now);
-      if (!developmentMode && !sameDayAllowed && now < slot.startsAt)
+      if (
+        !developmentMode &&
+        !sameDayAllowed &&
+        appointment.appointmentType === "SUPPORT" &&
+        now < slot.startsAt
+      )
         throw new ConflictError(m.appointmentNotStarted);
       if (
         !developmentMode &&

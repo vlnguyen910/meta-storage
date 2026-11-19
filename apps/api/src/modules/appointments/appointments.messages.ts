@@ -14,7 +14,7 @@ export const APPOINTMENT_MESSAGES = {
   closed: "Lịch hẹn đã đóng.",
   invalidTransition: "Không thể chuyển lịch hẹn sang trạng thái này.",
   completionNotReady:
-    "Chỉ nhân viên được giao mới được hoàn tất lịch hẹn đã xác nhận, trong ngày hẹn và sau khi đã bắt đầu công việc.",
+    "Chỉ nhân viên được giao mới được hoàn tất lịch hẹn đã xác nhận, trước khi lịch hẹn hết hạn và sau khi đã bắt đầu công việc.",
   noShowNotReady: "Quản lý chỉ có thể đánh dấu vắng mặt sau khi khung giờ hẹn kết thúc.",
   cancellationClosed: "Khách hàng phải hủy trước khi lịch hẹn bắt đầu.",
   staffRequired: "Hãy phân công nhân viên trước khi xác nhận lịch hẹn.",

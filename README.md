@@ -146,11 +146,12 @@ REDIS_TEST_URL=redis://localhost:6379/15 bun run --filter api test
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.
 
 Luồng nhận kho dùng reservation → thanh toán → appointment → task → inspection →
-bàn giao. Manager xác nhận và gán Staff tại màn hình lịch hẹn; Staff bắt đầu task
-khi tới giờ hẹn, chọn Unit và hoàn tất checklist trước khi bàn giao.
+bàn giao. Manager xác nhận và gán Staff tại màn hình lịch hẹn; Staff có thể bắt đầu
+task, kiểm tra và hoàn tất nhận/trả kho trước giờ hẹn, chọn Unit và hoàn tất
+checklist trước khi bàn giao. Giới hạn hết hạn tiếp nhận của lịch hẹn vẫn áp dụng.
 Khi `NODE_ENV=develop` hoặc `development`, API cho phép demo đặt kho/nhận kho
-trong ngày, dùng slot demo ngoài giờ hoạt động và bắt đầu task/bàn giao trước hoặc
-sau giờ hẹn. Cron không tự đánh dấu reservation no-show trong hai môi trường này.
+trong ngày, dùng slot demo ngoài giờ hoạt động và thực hiện task/bàn giao sau khi
+hết thời gian tiếp nhận. Cron không tự đánh dấu reservation no-show trong hai môi trường này.
 Trong mọi môi trường, có thể đặt lịch nhận kho trong ngày nếu ca đã chọn chưa kết
 thúc; ca đã kết thúc bị từ chối. Reservation vẫn tính thời hạn thuê từ giờ bắt
 đầu cố định của slot. Thanh toán phải được xác minh, staff phải được giao việc và

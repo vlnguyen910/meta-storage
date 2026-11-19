@@ -93,7 +93,8 @@ export class AppointmentsService {
       !slot ||
       (!isDevelopmentEnvironment() &&
         !sameDayAllowed &&
-        (now < slot.startsAt || now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)))
+        ((appointment.appointmentType === Type.SUPPORT && now < slot.startsAt) ||
+          now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`)))
     )
       throw new ConflictError(m.completionNotReady);
     if (appointment.status !== Status.CONFIRMED && appointment.status !== Status.COMPLETED)
@@ -337,7 +338,7 @@ export class AppointmentsService {
             appointment.status !== Status.CONFIRMED ||
             (!demo &&
               !sameDayAllowed &&
-              (now < slot.startsAt ||
+              ((appointment.appointmentType === Type.SUPPORT && now < slot.startsAt) ||
                 now >= new Date(`${appointment.scheduledDate}T23:59:59.999+07:00`))))
         )
           throw new ConflictError(m.completionNotReady);
