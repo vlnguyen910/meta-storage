@@ -40,7 +40,9 @@ export function ManagerBookingRow({
   const url =
     returnFlow && b.rentalId
       ? `/facility-manager/rentals?rentalId=${encodeURIComponent(b.rentalId)}`
-      : `/facility-manager/check-in?appointmentId=${encodeURIComponent(b.id)}`;
+      : supportFlow
+        ? `/facility-manager/support?ticketId=${encodeURIComponent(b.id)}`
+        : `/facility-manager/check-in?appointmentId=${encodeURIComponent(b.id)}`;
   const canReassign = canAssign && Boolean(b.assignedUnit) && !returnFlow && !supportFlow;
   const reassignHint = returnFlow
     ? M.returnUnitUnavailable
