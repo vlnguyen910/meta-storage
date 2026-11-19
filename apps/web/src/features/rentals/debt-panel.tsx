@@ -26,13 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { ListPagination } from "@/components/ui/list-pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import {
   Table,
@@ -224,6 +217,83 @@ export function DebtPanel({ rentalId }: { rentalId?: string }) {
   );
 }
 
+function DebtStatusBadge({ status }: { status: DebtRecord["status"] }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-[10px] font-semibold px-2 py-0.5",
+        status === "PAID"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : status === "PARTIALLY_PAID"
+            ? "border-amber-200 bg-amber-50 text-amber-800"
+            : "border-rose-200 bg-rose-50 text-rose-800",
+      )}
+    >
+      {M.statuses[status]}
+    </Badge>
+  );
+}
+
+/** One return's fees with the collection controls always open, for the staff return screen. */
+export function ReturnDebtPanel({ rentalId }: { rentalId: string }) {
+  const user = useAuthStore((state) => state.session?.user);
+  const list = useQuery({
+    queryKey: ["debts", user?.id, rentalId, undefined, 1],
+    queryFn: () => api.debts.list({ rentalId, limit: 10, offset: 0 }),
+    enabled: Boolean(user),
+  });
+  if (list.isPending) return <LoadingState variant="detail" />;
+  if (list.isError) return <ErrorState message={M.loadError} onRetry={() => void list.refetch()} />;
+  return list.data.items.map((debt) => (
+    <Card key={debt.id} className="border-slate-200 bg-white shadow-2xs">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+            <Wallet size={16} aria-hidden="true" />
+          </span>
+          <h2 className="text-base font-bold text-slate-900">{M.title}</h2>
+        </div>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            {
+              label: M.original,
+              value: formatCurrency(Number(debt.originalAmount)),
+              tone: "text-slate-900",
+            },
+            {
+              label: M.paid,
+              value: formatCurrency(Number(debt.paidAmount)),
+              tone: "text-emerald-700",
+            },
+            {
+              label: M.remaining,
+              value: formatCurrency(Number(debt.remainingAmount)),
+              tone: "text-rose-600",
+            },
+          ].map((item) => (
+            <div key={item.label} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {item.label}
+              </dt>
+              <dd className={cn("mt-1 text-sm font-bold tabular-nums", item.tone)}>{item.value}</dd>
+            </div>
+          ))}
+          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {M.statusShort}
+            </dt>
+            <dd className="mt-1">
+              <DebtStatusBadge status={debt.status} />
+            </dd>
+          </div>
+        </dl>
+        <DebtHistory debt={debt} canCollect={user?.role === "FACILITY_STAFF"} compact />
+      </CardContent>
+    </Card>
+  ));
+}
+
 function DebtTableRow({
   debt,
   isExpanded,
@@ -263,19 +333,7 @@ function DebtTableRow({
           {formatCurrency(Number(debt.remainingAmount))}
         </TableCell>
         <TableCell className="px-4 py-3 align-middle text-center">
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-[10px] font-semibold px-2 py-0.5",
-              debt.status === "PAID"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : debt.status === "PARTIALLY_PAID"
-                  ? "border-amber-200 bg-amber-50 text-amber-800"
-                  : "border-rose-200 bg-rose-50 text-rose-800",
-            )}
-          >
-            {M.statuses[debt.status]}
-          </Badge>
+          <DebtStatusBadge status={debt.status} />
         </TableCell>
         <TableCell className="px-4 py-3 align-middle text-right">
           <Button
@@ -304,7 +362,16 @@ function DebtTableRow({
   );
 }
 
-function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boolean }) {
+function DebtHistory({
+  debt,
+  canCollect,
+  compact = false,
+}: {
+  debt: DebtRecord;
+  canCollect: boolean;
+  /** The return screen already shows the amounts above, so the form drops its own summary. */
+  compact?: boolean;
+}) {
   const { showToast } = useToast();
   const userId = useAuthStore((state) => state.session?.user.id);
   const client = useQueryClient();
@@ -356,13 +423,12 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
         <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 mb-2">
           <History size={14} className="text-slate-500" />
           <h3>{M.history}</h3>
+          {!detail.data.payments.length && (
+            <span className="font-normal text-slate-500">· {M.noReceipts}</span>
+          )}
         </div>
 
-        {!detail.data.payments.length ? (
-          <p className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 text-xs text-slate-500">
-            {M.noReceipts}
-          </p>
-        ) : (
+        {detail.data.payments.length > 0 && (
           <div className="space-y-1.5">
             {detail.data.payments.map((payment) => (
               <div
@@ -396,84 +462,79 @@ function DebtHistory({ debt, canCollect }: { debt: DebtRecord; canCollect: boole
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-emerald-700" />
-              <span>Ghi nhận khoản thanh toán từ khách</span>
+              <span>{M.collectTitle}</span>
             </h4>
-            <span className="text-xs text-slate-600">
-              {M.remaining}:{" "}
-              <strong className="text-rose-600 font-bold">
-                {formatCurrency(Number(detail.data.remainingAmount))}
-              </strong>
-            </span>
+            {!compact && (
+              <span className="text-xs text-slate-600">
+                {M.remaining}:{" "}
+                <strong className="text-rose-600 font-bold">
+                  {formatCurrency(Number(detail.data.remainingAmount))}
+                </strong>
+              </span>
+            )}
           </div>
 
           <form
-            className="grid gap-3 sm:grid-cols-2"
-            onSubmit={
-              viaSepay
-                ? (event) => {
-                    event.preventDefault();
-                    startSepay.mutate();
-                  }
-                : form.handleSubmit((input) => collect.mutate(input))
-            }
+            className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (viaSepay) startSepay.mutate();
+              // Cash settles the full remaining fee; the same key makes a retry safe.
+              else
+                collect.mutate({
+                  method: "CASH",
+                  amount: Number(detail.data.remainingAmount),
+                  idempotencyKey: form.getValues("idempotencyKey"),
+                });
+            }}
           >
-            {!viaSepay && (
-              <label className="block text-xs font-semibold text-slate-700">
-                <span className="block mb-1">{M.amount}</span>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  max={Number(detail.data.remainingAmount)}
-                  step={1}
-                  className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
-                  disabled={collect.isPending}
-                  {...form.register("amount", { valueAsNumber: true })}
-                />
-              </label>
-            )}
-
-            <div className="block text-xs font-semibold text-slate-700">
-              <span className="block mb-1">{M.method}</span>
-              <Select
-                value={form.watch("method")}
-                onValueChange={(val) => {
-                  form.setValue("method", val as "CASH" | "BANK_TRANSFER", {
-                    shouldValidate: true,
-                  });
-                  form.resetField("reference");
-                }}
-                disabled={collect.isPending}
-              >
-                <SelectTrigger
-                  id="debt-method-select"
-                  aria-label={M.method}
-                  className="h-8.5 min-h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 font-normal"
-                >
-                  <SelectValue placeholder={M.method} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CASH">{M.cash}</SelectItem>
-                  <SelectItem value="BANK_TRANSFER">{M.bankTransfer}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <fieldset
+              aria-label={M.method}
+              className="inline-flex w-full rounded-lg border border-slate-200 bg-white p-0.5 sm:w-auto"
+            >
+              {(["CASH", "BANK_TRANSFER"] as const).map((method) => {
+                const active = form.watch("method") === method;
+                return (
+                  <button
+                    key={method}
+                    type="button"
+                    aria-pressed={active}
+                    disabled={collect.isPending || startSepay.isPending}
+                    onClick={() => {
+                      form.setValue("method", method, { shouldValidate: true });
+                      form.resetField("reference");
+                    }}
+                    className={cn(
+                      "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-none",
+                      active ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-50",
+                    )}
+                  >
+                    {method === "CASH" ? (
+                      <Banknote size={13} aria-hidden="true" />
+                    ) : (
+                      <QrCode size={13} aria-hidden="true" />
+                    )}
+                    {method === "CASH" ? M.cash : M.bankTransfer}
+                  </button>
+                );
+              })}
+            </fieldset>
 
             {viaSepay && (
-              <p className="text-xs leading-5 text-slate-600 sm:col-span-2">{M.sepayHint}</p>
+              <p className="order-last w-full text-xs leading-5 text-slate-600">{M.sepayHint}</p>
             )}
 
             {Object.values(form.formState.errors).map((error) => (
               <p
                 role="alert"
-                className="text-xs font-semibold text-rose-600 sm:col-span-2"
+                className="order-last w-full text-xs font-semibold text-rose-600"
                 key={error.message}
               >
                 {error.message}
               </p>
             ))}
 
-            <div className="sm:col-span-2 flex justify-end pt-1">
+            <div className="flex justify-end">
               <Button
                 type="submit"
                 disabled={collect.isPending || startSepay.isPending}
