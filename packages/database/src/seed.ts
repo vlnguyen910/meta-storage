@@ -278,12 +278,12 @@ export async function seedImmediateCheckInSlot(seedNow = getSeedNow()) {
         id: SEED_IDS.demoCheckInSlot,
         name: "Demo check-in ngay",
         startTime,
-        endTime: "20:00:00",
+        endTime: "23:59:59.999999",
         sameDayCheckInEnabled: true,
       })
       .onConflictDoUpdate({
         target: checkInSlots.id,
-        set: { startTime, endTime: "20:00:00", sameDayCheckInEnabled: true },
+        set: { startTime, endTime: "23:59:59.999999", sameDayCheckInEnabled: true },
       });
     if (!existing) {
       const [source] = await tx
