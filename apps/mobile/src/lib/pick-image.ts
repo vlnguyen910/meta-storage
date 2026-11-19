@@ -30,8 +30,3 @@ export async function pickImages({
   if (result.canceled || !result.assets?.length) return [];
   return result.assets.slice(0, limit).map((asset) => prepareImageUpload(asset));
 }
-
-export async function pickImage(camera = false): Promise<InspectionEvidenceInput | null> {
-  const images = await pickImages({ camera, limit: 1 });
-  return images[0] ?? null;
-}
