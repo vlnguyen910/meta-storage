@@ -10,8 +10,8 @@ import {
 } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { Icon } from "../../components/ui/icon";
 import { MobilePhoto } from "../../components/ui/mobile-photo";
 import { Button, Card, dateTime, Field, Heading, Notice, Row } from "../../components/ui/mobile-ui";
@@ -346,8 +346,14 @@ function InspectionEditor({
   );
   const locked = record.status === "PASSED" || record.status === "FAILED";
   const selectedPhoto = record.evidence[photoIndex];
+  const previousCountRef = useRef(record.evidence.length);
   useEffect(() => {
-    setPhotoIndex((current) => Math.min(current, Math.max(0, record.evidence.length - 1)));
+    if (record.evidence.length > previousCountRef.current) {
+      setPhotoIndex(record.evidence.length - 1);
+    } else {
+      setPhotoIndex((current) => Math.min(current, Math.max(0, record.evidence.length - 1)));
+    }
+    previousCountRef.current = record.evidence.length;
   }, [record.evidence.length]);
   const canPass =
     HandoverChecklistCompletionSchema.safeParse(results).success && condition !== "MAJOR_DAMAGE";
@@ -430,43 +436,70 @@ function InspectionEditor({
           <Text className="font-body-semibold text-label text-ink">{M.photos}</Text>
           <Text className="font-body-medium text-label text-muted">
             {record.evidence.length}/{INSPECTION_PHOTO_MAX_COUNT}
+            {record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT ? " (Đã đạt giới hạn)" : ""}
           </Text>
         </View>
         {selectedPhoto && (
           <View key={selectedPhoto.id}>
             <MobilePhoto label={M.photos} source={{ uri: selectedPhoto.url }} tall previewable />
             {record.evidence.length > 1 && (
-              <View className="mb-3 flex-row items-center justify-between gap-2">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={M.previousPhoto}
-                  accessibilityState={{ disabled: photoIndex === 0 }}
-                  disabled={photoIndex === 0}
-                  onPress={() => setPhotoIndex((current) => Math.max(0, current - 1))}
-                  className={`min-h-10 flex-row items-center gap-1 rounded-lg px-2 ${photoIndex === 0 ? "opacity-40" : "active:bg-primary-soft"}`}
-                >
-                  <Icon as={ChevronLeft} size={18} className="text-primary" />
-                  <Text className="font-body-semibold text-[12px] text-primary">
-                    {M.previousPhoto}
+              <>
+                <View className="mb-3 flex-row flex-wrap gap-2">
+                  {record.evidence.map((photo, index) => {
+                    const isSelected = index === photoIndex;
+                    return (
+                      <Pressable
+                        key={photo.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${M.photos} ${index + 1}`}
+                        onPress={() => setPhotoIndex(index)}
+                        className={`h-14 w-14 overflow-hidden rounded-lg border-2 ${
+                          isSelected ? "border-primary" : "border-outline-variant opacity-70"
+                        }`}
+                      >
+                        <Image
+                          source={{ uri: photo.url }}
+                          className="h-full w-full"
+                          resizeMode="cover"
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View className="mb-3 flex-row items-center justify-between gap-2">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={M.previousPhoto}
+                    accessibilityState={{ disabled: photoIndex === 0 }}
+                    disabled={photoIndex === 0}
+                    onPress={() => setPhotoIndex((current) => Math.max(0, current - 1))}
+                    className={`min-h-10 flex-row items-center gap-1 rounded-lg px-2 ${photoIndex === 0 ? "opacity-40" : "active:bg-primary-soft"}`}
+                  >
+                    <Icon as={ChevronLeft} size={18} className="text-primary" />
+                    <Text className="font-body-semibold text-[12px] text-primary">
+                      {M.previousPhoto}
+                    </Text>
+                  </Pressable>
+                  <Text className="font-body-semibold text-[12px] text-muted">
+                    {photoIndex + 1}/{record.evidence.length}
                   </Text>
-                </Pressable>
-                <Text className="font-body-semibold text-[12px] text-muted">
-                  {photoIndex + 1}/{record.evidence.length}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={M.nextPhoto}
-                  accessibilityState={{ disabled: photoIndex === record.evidence.length - 1 }}
-                  disabled={photoIndex === record.evidence.length - 1}
-                  onPress={() =>
-                    setPhotoIndex((current) => Math.min(record.evidence.length - 1, current + 1))
-                  }
-                  className={`min-h-10 flex-row items-center gap-1 rounded-lg px-2 ${photoIndex === record.evidence.length - 1 ? "opacity-40" : "active:bg-primary-soft"}`}
-                >
-                  <Text className="font-body-semibold text-[12px] text-primary">{M.nextPhoto}</Text>
-                  <Icon as={ChevronRight} size={18} className="text-primary" />
-                </Pressable>
-              </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={M.nextPhoto}
+                    accessibilityState={{ disabled: photoIndex === record.evidence.length - 1 }}
+                    disabled={photoIndex === record.evidence.length - 1}
+                    onPress={() =>
+                      setPhotoIndex((current) => Math.min(record.evidence.length - 1, current + 1))
+                    }
+                    className={`min-h-10 flex-row items-center gap-1 rounded-lg px-2 ${photoIndex === record.evidence.length - 1 ? "opacity-40" : "active:bg-primary-soft"}`}
+                  >
+                    <Text className="font-body-semibold text-[12px] text-primary">
+                      {M.nextPhoto}
+                    </Text>
+                    <Icon as={ChevronRight} size={18} className="text-primary" />
+                  </Pressable>
+                </View>
+              </>
             )}
             {!locked && (
               <Button
