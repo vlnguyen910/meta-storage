@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useOperationalSettings } from "@/features/administration/use-system-settings";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FLOW } from "./flow.messages";
@@ -140,6 +141,8 @@ export function InspectionScreen({
   onBack: () => void;
 }) {
   const editor = useInspectionEditor(record, onNavigate);
+  const { data: operationalSettings } = useOperationalSettings();
+  const maxPhotos = record.maxEvidenceCount ?? operationalSettings?.CHECK_IN_MAX_PHOTOS ?? 8;
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmLock, setConfirmLock] = useState(false);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
@@ -493,11 +496,13 @@ export function InspectionScreen({
                 <div className="flex items-center gap-2 font-bold text-slate-800">
                   <Camera size={16} className="text-slate-500" />
                   <span>{FLOW.evidence}</span>
-                  <span className="text-slate-400 font-normal">({record.evidence.length}/8)</span>
+                  <span className="text-slate-400 font-normal">
+                    ({record.evidence.length}/{maxPhotos})
+                  </span>
                 </div>
                 <Button
                   variant="outline"
-                  disabled={editor.busy || editor.locked || record.evidence.length >= 8}
+                  disabled={editor.busy || editor.locked || record.evidence.length >= maxPhotos}
                   onClick={() => fileRef.current?.click()}
                   icon={<Camera size={14} />}
                   className="h-8 px-3 text-xs font-semibold rounded-lg"
@@ -531,7 +536,7 @@ export function InspectionScreen({
                       Bấm để tải ảnh hiện trạng ô kho
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
-                      Hỗ trợ JPG, PNG, WEBP (tối đa 8 ảnh bằng chứng)
+                      Hỗ trợ JPG, PNG, WEBP (tối đa {maxPhotos} ảnh bằng chứng)
                     </p>
                   </button>
                 ) : (

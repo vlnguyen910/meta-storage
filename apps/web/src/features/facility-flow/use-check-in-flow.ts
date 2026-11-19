@@ -332,9 +332,12 @@ export function useInspectionEditor(record: InspectionRecord, onNavigate: (next:
       setError(FLOW.photoError);
       return;
     }
-    const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
+    const maxPhotos =
+      record.maxEvidenceCount ??
+      operationalSettings?.CHECK_IN_MAX_PHOTOS ??
+      INSPECTION_PHOTO_MAX_COUNT;
     if (record.evidence.length >= maxPhotos) {
-      setError(FLOW.photoLimit);
+      setError(FLOW.photoLimit(maxPhotos));
       return;
     }
     await action(async () => {
