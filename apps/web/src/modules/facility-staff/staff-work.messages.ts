@@ -131,7 +131,11 @@ export const STAFF_WORK = {
   returnEvidence: "Ảnh bằng chứng",
   returnAddPhoto: "Thêm ảnh",
   returnPhotoUploading: "Đang tải ảnh…",
-  returnPhotoError: "Ảnh cần có định dạng JPEG, PNG hoặc WebP và dung lượng không quá 3 MB.",
+  returnPhotoFormatError: "Định dạng ảnh không hợp lệ. Vui lòng chọn file JPEG, PNG hoặc WebP.",
+  returnPhotoSizeError: (maxMb: number = 3) =>
+    `Dung lượng ảnh vượt quá giới hạn cho phép (tối đa ${maxMb} MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn.`,
+  returnPhotoError:
+    "Ảnh cần có định dạng JPEG, PNG hoặc WebP và dung lượng không vượt quá giới hạn cho phép.",
   returnPhotoLimit: (maxCount: number = 8) => `Biên bản chỉ cho phép tối đa ${maxCount} ảnh.`,
   returnPhotoSaveError: "Không thể cập nhật ảnh bằng chứng. Hãy thử lại.",
   returnNoEvidence: "Chưa có ảnh bằng chứng.",

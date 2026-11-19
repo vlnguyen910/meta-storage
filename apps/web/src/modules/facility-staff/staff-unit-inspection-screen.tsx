@@ -159,12 +159,18 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
   }
   function uploadSelected(file?: File) {
     if (!file || !record) return;
-    if (
-      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > maxUploadBytes ||
-      record.evidence.length >= (record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT)
-    ) {
-      showToast(M.returnPhotoError, "error");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      showToast(M.returnPhotoFormatError, "error");
+      return;
+    }
+    if (file.size > maxUploadBytes) {
+      const maxMb = Math.round(maxUploadBytes / (1024 * 1024));
+      showToast(M.returnPhotoSizeError(maxMb), "error");
+      return;
+    }
+    const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
+    if (record.evidence.length >= maxPhotos) {
+      showToast(M.returnPhotoLimit(maxPhotos), "error");
       return;
     }
     upload.mutate(file);

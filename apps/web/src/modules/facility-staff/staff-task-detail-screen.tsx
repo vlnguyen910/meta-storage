@@ -292,11 +292,12 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   function selectEvidence(file?: File) {
     if (!file || !record) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setPhotoError(M.returnPhotoError);
+      setPhotoError(M.returnPhotoFormatError);
       return;
     }
     if (file.size > maxUploadBytes) {
-      setPhotoError(M.returnPhotoError);
+      const maxMb = Math.round(maxUploadBytes / (1024 * 1024));
+      setPhotoError(M.returnPhotoSizeError(maxMb));
       return;
     }
     const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
