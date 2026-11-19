@@ -24,7 +24,7 @@ vi.mock("../../../../mobile/src/lib/api", () => ({
     inspections: { forAppointment: calls.history, handover: calls.handover },
   },
 }));
-vi.mock("../../../../mobile/src/lib/pick-image", () => ({ pickImage: vi.fn() }));
+vi.mock("../../../../mobile/src/lib/pick-image", () => ({ pickImages: vi.fn() }));
 
 const task = {
   id: "handover-task",
