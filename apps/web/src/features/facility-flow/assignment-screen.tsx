@@ -13,7 +13,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,18 +61,41 @@ export function AssignmentScreen() {
   const root = role === UserRole.FACILITY_MANAGER ? "/facility-manager" : "/staff";
 
   // Filter units by search query
-  const filteredUnits = (units.data ?? []).filter((u) => {
-    if (!search.trim()) return true;
-    const q = search.trim().toLowerCase();
-    return (
-      u.code.toLowerCase().includes(q) ||
-      (u.locationDescription?.toLowerCase().includes(q) ?? false) ||
-      (u.floor?.toString().includes(q) ?? false)
-    );
-  });
+  const filteredUnits = useMemo(() => {
+    return (units.data ?? []).filter((u) => {
+      if (!search.trim()) return true;
+      const q = search.trim().toLowerCase();
+      return (
+        u.code.toLowerCase().includes(q) ||
+        (u.locationDescription?.toLowerCase().includes(q) ?? false) ||
+        (u.floor?.toString().includes(q) ?? false)
+      );
+    });
+  }, [units.data, search]);
+
+  // Sort units: available units first (including currently assigned unit), then by unit code from smallest to largest
+  const sortedUnits = useMemo(() => {
+    const assignedId = booking.data?.assignedUnit?.physicalUnitId;
+    return [...filteredUnits].sort((a, b) => {
+      const isCurrentAssignedA = a.id === assignedId;
+      const isCurrentAssignedB = b.id === assignedId;
+      const aAvailable = a.isAvailableForPeriod && (a.status === "AVAILABLE" || isCurrentAssignedA);
+      const bAvailable = b.isAvailableForPeriod && (b.status === "AVAILABLE" || isCurrentAssignedB);
+
+      if (isCurrentAssignedA !== isCurrentAssignedB) {
+        return isCurrentAssignedA ? -1 : 1;
+      }
+      if (aAvailable !== bAvailable) {
+        return aAvailable ? -1 : 1;
+      }
+      return a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: "base" });
+    });
+  }, [filteredUnits, booking.data?.assignedUnit?.physicalUnitId]);
 
   const unitPageSize = 9; // 3x3 grid, fits viewport without scrolling
-  const pageUnits = filteredUnits.slice((unitPage - 1) * unitPageSize, unitPage * unitPageSize);
+  const pageUnits = useMemo(() => {
+    return sortedUnits.slice((unitPage - 1) * unitPageSize, unitPage * unitPageSize);
+  }, [sortedUnits, unitPage]);
 
   // Reset page on search change
   // biome-ignore lint/correctness/useExhaustiveDependencies: search intentionally resets local page
@@ -338,7 +361,7 @@ export function AssignmentScreen() {
                     {FLOW.suggested}
                   </h3>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 tabular-nums">
-                    {filteredUnits.length} ô
+                    {sortedUnits.length} ô
                   </span>
                 </div>
 
@@ -372,7 +395,7 @@ export function AssignmentScreen() {
                 <LoadingState variant="table" />
               ) : units.isError ? (
                 <ErrorState message={FLOW.error} onRetry={() => units.refetch()} />
-              ) : filteredUnits.length === 0 ? (
+              ) : sortedUnits.length === 0 ? (
                 <Card className="p-6 text-center text-slate-500">
                   <Warehouse className="mx-auto mb-2 text-slate-400" size={28} />
                   <p className="text-xs font-semibold">{FLOW.noUnits}</p>
@@ -507,7 +530,7 @@ export function AssignmentScreen() {
                     unitLabel="ô kho"
                     page={unitPage}
                     pageSize={unitPageSize}
-                    total={filteredUnits.length}
+                    total={sortedUnits.length}
                     onPageChange={setUnitPage}
                   />
                 </>
