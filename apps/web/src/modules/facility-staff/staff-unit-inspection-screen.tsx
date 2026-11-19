@@ -6,7 +6,6 @@ import {
   HandoverChecklistCompletionSchema,
   type HandoverChecklistItemResult,
   HandoverChecklistItemResultSchema,
-  INSPECTION_PHOTO_MAX_BYTES,
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionRecord,
   MaintenanceChecklistCompletionSchema,
@@ -19,6 +18,7 @@ import { Card } from "@/components/ui/card";
 import { OperationalBadge } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
+import { useOperationalSettings } from "@/features/administration/use-system-settings";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { InspectionChecklist } from "@/features/facility-flow/inspection-checklist";
 import { InspectionPhotoCard } from "@/features/facility-flow/inspection-screen";
@@ -33,6 +33,8 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
   const { showToast } = useToast();
   const query = useFacilityTaskDetail(taskId);
   const actor = useAuthStore((state) => state.session?.user.id);
+  const { data: operationalSettings } = useOperationalSettings();
+  const maxUploadBytes = (operationalSettings?.CLOUDINARY_MAX_UPLOAD_MB ?? 3) * 1024 * 1024;
   const client = useQueryClient();
   const task = query.data;
   const recordQuery = useQuery({
@@ -159,8 +161,8 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
     if (!file || !record) return;
     if (
       !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > INSPECTION_PHOTO_MAX_BYTES ||
-      record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT
+      file.size > maxUploadBytes ||
+      record.evidence.length >= (record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT)
     ) {
       showToast(M.returnPhotoError, "error");
       return;
@@ -258,7 +260,7 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">{M.returnEvidence}</h2>
               <span className="text-xs text-muted">
-                {record.evidence.length}/{INSPECTION_PHOTO_MAX_COUNT}
+                {record.evidence.length}/{record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT}
               </span>
             </div>
             {!locked && (
@@ -275,7 +277,11 @@ export function StaffUnitInspectionScreen({ taskId }: { taskId: string }) {
                 />
                 <Button
                   variant="outline"
-                  disabled={busy || record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT}
+                  disabled={
+                    busy ||
+                    record.evidence.length >=
+                      (record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT)
+                  }
                   onClick={() => photoInput.current?.click()}
                 >
                   {M.returnAddPhoto}

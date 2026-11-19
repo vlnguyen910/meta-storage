@@ -10,9 +10,16 @@ export interface SystemSettingDto extends SystemSettingSnapshot {
   description: string;
   category: "RENTAL" | "FINANCE" | "OPERATIONS" | "SYSTEM";
   valueType: "INTEGER";
-  unit: "DAYS" | "PERCENT" | "MONTHS" | "HOUR" | "MEGABYTES";
+  unit: "DAYS" | "PERCENT" | "MONTHS" | "HOUR" | "MEGABYTES" | "PHOTOS";
   updatedBy: string | null;
   updatedAt: string;
+}
+
+export interface OperationalSettingsDto {
+  CHECK_IN_MAX_PHOTOS: number;
+  CLOUDINARY_MAX_UPLOAD_MB: number;
+  OPENING_HOUR: number;
+  CLOSING_HOUR: number;
 }
 
 export interface SystemSettingUpdateResult extends SystemSettingSnapshot {

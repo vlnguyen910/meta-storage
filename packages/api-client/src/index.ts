@@ -57,6 +57,7 @@ import type {
   ManualRefundQuery,
   MonthlyRevenueQuery,
   MonthlyRevenueReport,
+  OperationalSettingsDto,
   OperationsOverview,
   PaginatedResult,
   PaymentCheckoutInput,
@@ -592,6 +593,8 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     systemSettings: {
+      operational: () =>
+        http.get<ApiEnvelope<OperationalSettingsDto>>("/system-settings/operational").then(unwrap),
       list: () => http.get<ApiEnvelope<SystemSettingDto[]>>("/system-settings").then(unwrap),
       update: (input: ConfigureSystemSetting) =>
         http.put<ApiEnvelope<SystemSettingUpdateResult>>("/system-settings", input).then(unwrap),

@@ -46,6 +46,7 @@ const InspectionViolationInputSchema = z.strictObject({
 
 export const INSPECTION_PHOTO_MAX_BYTES = 3 * 1024 * 1024;
 export const INSPECTION_PHOTO_MAX_COUNT = 8;
+export const INSPECTION_PHOTO_HARD_MAX = 30;
 export const INSPECTION_CHECKLIST_VERSION = "H6_4PASS_V1";
 const draftResults = z
   .array(HandoverChecklistItemResultSchema)
@@ -173,8 +174,8 @@ export const UpdateInspectionInputSchema = z
     condition: InspectionConditionValueSchema.nullable().optional(),
     checklist: z.record(z.string(), z.unknown()).optional(),
     notes: z.string().max(4000, INSPECTION_MESSAGES.notesLimit).nullable().optional(),
-    addEvidence: z.array(InspectionEvidenceInputSchema).max(INSPECTION_PHOTO_MAX_COUNT).optional(),
-    removeEvidenceIds: z.array(z.string().uuid()).max(INSPECTION_PHOTO_MAX_COUNT).optional(),
+    addEvidence: z.array(InspectionEvidenceInputSchema).max(INSPECTION_PHOTO_HARD_MAX).optional(),
+    removeEvidenceIds: z.array(z.string().uuid()).max(INSPECTION_PHOTO_HARD_MAX).optional(),
     violations: z.array(InspectionViolationInputSchema).max(100).optional(),
     policyVersion: z.number().int().nonnegative().optional(),
   })
@@ -217,6 +218,7 @@ export const InspectionRecordSchema = z.object({
   inspectedAt: z.string().datetime().nullable(),
   inspectDoneAt: z.string().datetime().nullable(),
   evidence: z.array(InspectionPhotoSchema.extend({ url: z.string().url() })),
+  maxEvidenceCount: z.number().int().positive().optional(),
   returnContext: z
     .object({
       depositAmount: z.number().int().nonnegative(),

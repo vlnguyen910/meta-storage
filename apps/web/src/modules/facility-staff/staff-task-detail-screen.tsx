@@ -5,7 +5,6 @@ import {
   HANDOVER_CHECKLIST_ITEMS,
   type HandoverChecklistItemResult,
   HandoverChecklistItemResultSchema,
-  INSPECTION_PHOTO_MAX_BYTES,
   INSPECTION_PHOTO_MAX_COUNT,
   type InspectionRecord,
   type PolicyViolationFee,
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
+import { useOperationalSettings } from "@/features/administration/use-system-settings";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { bookingKeys } from "@/features/check-in/booking.keys";
 import { InspectionChecklist } from "@/features/facility-flow/inspection-checklist";
@@ -101,6 +101,8 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
   const photoInput = useRef<HTMLInputElement>(null);
   const [settlementConfirmed, setSettlementConfirmed] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const { data: operationalSettings } = useOperationalSettings();
+  const maxUploadBytes = (operationalSettings?.CLOUDINARY_MAX_UPLOAD_MB ?? 3) * 1024 * 1024;
   useEffect(() => {
     if (!record || record.id === recordId) return;
     setRecordId(record.id);
@@ -293,11 +295,12 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
       setPhotoError(M.returnPhotoError);
       return;
     }
-    if (file.size > INSPECTION_PHOTO_MAX_BYTES) {
+    if (file.size > maxUploadBytes) {
       setPhotoError(M.returnPhotoError);
       return;
     }
-    if (record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT) {
+    const maxPhotos = record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT;
+    if (record.evidence.length >= maxPhotos) {
       setPhotoError(M.returnPhotoLimit);
       return;
     }
@@ -657,7 +660,8 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   <Card className="space-y-4 rounded-2xl border-slate-200 bg-white p-5 shadow-xs sm:p-6">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <h2 className="text-lg font-semibold">
-                        {M.returnEvidence} ({record.evidence.length}/{INSPECTION_PHOTO_MAX_COUNT})
+                        {M.returnEvidence} ({record.evidence.length}/
+                        {record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT})
                       </h2>
                       {record.status !== "PASSED" && (
                         <>
@@ -678,7 +682,8 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                               uploadEvidence.isPending ||
                               removeEvidence.isPending ||
                               saveReturn.isPending ||
-                              record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT
+                              record.evidence.length >=
+                                (record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT)
                             }
                             onClick={() => photoInput.current?.click()}
                           >

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  INSPECTION_PHOTO_HARD_MAX,
   INSPECTION_PHOTO_MAX_BYTES,
-  INSPECTION_PHOTO_MAX_COUNT,
   InspectionEvidenceInputSchema,
   SUPPORT_IMAGE_MAX_BYTES,
   UpdateInspectionInputSchema,
@@ -95,7 +95,7 @@ describe("mobile image upload normalization", () => {
     expect(prepareImageUpload({ base64 }, SUPPORT_IMAGE_MAX_BYTES).mimeType).toBe("image/jpeg");
   });
   test("accepts multiple inspection evidence inputs up to the limit in UpdateInspectionInputSchema", () => {
-    const validEvidence = Array.from({ length: INSPECTION_PHOTO_MAX_COUNT }, (_, i) => ({
+    const validEvidence = Array.from({ length: INSPECTION_PHOTO_HARD_MAX }, (_, i) => ({
       filename: `photo-${i}.jpg`,
       mimeType: "image/jpeg" as const,
       dataBase64: JPEG,
