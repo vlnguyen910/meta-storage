@@ -117,21 +117,27 @@ export class MediaAssetsService {
       throw new BadRequestError(errorMessage);
     const bytes = Buffer.from(value, "base64");
     const canonical = bytes.toString("base64");
+    if (canonical !== value || bytes.byteLength === 0) {
+      throw new BadRequestError(errorMessage);
+    }
     const maxBytes = await this.getMaxImageBytes();
+    if (bytes.byteLength > maxBytes) {
+      const maxMb = Math.round(maxBytes / (1024 * 1024));
+      throw new BadRequestError(
+        `Dung lượng ảnh vượt quá giới hạn cho phép (tối đa ${maxMb} MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn.`,
+      );
+    }
     const matches =
-      canonical === value &&
-      bytes.byteLength > 0 &&
-      bytes.byteLength <= maxBytes &&
-      ((mimeType === "image/jpeg" &&
+      (mimeType === "image/jpeg" &&
         bytes[0] === 0xff &&
         bytes[1] === 0xd8 &&
         bytes.at(-2) === 0xff &&
         bytes.at(-1) === 0xd9) ||
-        (mimeType === "image/png" &&
-          bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) ||
-        (mimeType === "image/webp" &&
-          bytes.toString("ascii", 0, 4) === "RIFF" &&
-          bytes.toString("ascii", 8, 12) === "WEBP"));
+      (mimeType === "image/png" &&
+        bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) ||
+      (mimeType === "image/webp" &&
+        bytes.toString("ascii", 0, 4) === "RIFF" &&
+        bytes.toString("ascii", 8, 12) === "WEBP");
     if (!matches) throw new BadRequestError(errorMessage);
     return bytes;
   }

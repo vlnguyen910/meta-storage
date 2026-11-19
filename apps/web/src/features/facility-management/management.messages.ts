@@ -89,6 +89,9 @@ export const F5 = {
   coverPreviewLink: "Mở ảnh cover trong tab mới",
   coverUploadError: "Không tải được ảnh lên Cloudinary. Vui lòng thử lại.",
   coverFileError: "Chọn ảnh JPEG, PNG hoặc WebP có dung lượng tối đa 3 MB.",
+  coverFileFormatError: "Định dạng ảnh không hợp lệ. Vui lòng chọn file JPEG, PNG hoặc WebP.",
+  coverFileSizeError: (maxMb: number = 3) =>
+    `Dung lượng ảnh vượt quá giới hạn cho phép (tối đa ${maxMb} MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn.`,
   coverUploadMode: "Tải lên Cloudinary",
   coverExternalMode: "Dùng URL ngoài",
   descriptionLabel: "Mô tả",

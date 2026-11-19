@@ -325,11 +325,13 @@ export function useInspectionEditor(record: InspectionRecord, onNavigate: (next:
     else showToast(FLOW.saveSuccess, "success");
   }
   async function upload(file: File) {
-    if (
-      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > maxUploadBytes
-    ) {
-      setError(FLOW.photoError);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError(FLOW.photoFormatError);
+      return;
+    }
+    if (file.size > maxUploadBytes) {
+      const maxMb = Math.round(maxUploadBytes / (1024 * 1024));
+      setError(FLOW.photoSizeError(maxMb));
       return;
     }
     const maxPhotos =
