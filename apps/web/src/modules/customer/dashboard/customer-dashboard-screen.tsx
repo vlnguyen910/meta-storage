@@ -10,9 +10,9 @@ import {
   CalendarClock,
   CalendarDays,
   CheckCircle2,
+  Eye,
   Headphones,
   Plus,
-  QrCode,
   WalletCards,
   Warehouse,
 } from "lucide-react";
@@ -327,7 +327,7 @@ export function CustomerDashboardScreen() {
                             href={customerRoutes.reservation(b.id)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-primary hover:bg-primary-soft transition-colors"
                           >
-                            <QrCode className="size-3.5" />
+                            <Eye className="size-3.5" />
                             <span>{D.qrAction}</span>
                           </Link>
                         </div>

@@ -69,10 +69,12 @@ export const CUSTOMER_HOME = {
   height: "Chiều cao",
   volume: "Thể tích",
   unitUnavailable: "Chưa tải được thông số loại kho.",
-  qr: "Mã tra cứu đặt kho",
-  qrLabel: "Mã QR mở hồ sơ đặt kho",
-  qrHint: "QR mở hồ sơ đặt kho. Nhân viên vẫn cần xác minh và bàn giao trực tiếp.",
-  qrUnavailable: "Mã tra cứu sẽ hiển thị khi đặt kho đã xác nhận và lịch nhận kho còn hiệu lực.",
+  qr: "Thông tin nhận kho",
+  qrLabel: "Thông tin nhận kho",
+  qrHint:
+    "Khi đến cơ sở, bạn chỉ cần xuất trình mã lịch hẹn hoặc số điện thoại cho nhân viên lễ tân để làm thủ tục nhận kho.",
+  qrUnavailable:
+    "Thông tin nhận kho sẽ hiển thị khi đặt kho đã xác nhận và lịch nhận kho còn hiệu lực.",
   contract: "Thông tin đặt kho & Dịch vụ",
   rentalPeriod: "Thời hạn thuê dự kiến",
   duration: "Số tháng thuê",

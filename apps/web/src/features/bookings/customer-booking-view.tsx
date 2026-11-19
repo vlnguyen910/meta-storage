@@ -4,15 +4,14 @@ import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
+  Copy,
   HelpCircle,
   MapPin,
-  QrCode as QrIcon,
+  ReceiptText,
   Warehouse,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,21 +38,7 @@ export function CustomerBookingDetail({ id }: { id: string }) {
   const query = useCustomerBooking(id);
   const cancel = useCancelCustomerBooking(id);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [qr, setQr] = useState<string>();
-  const qrUrl = query.data?.confirmation?.qrUrl;
-  useEffect(() => {
-    setQr(undefined);
-    let active = true;
-    if (qrUrl)
-      QRCode.toDataURL(qrUrl)
-        .then((url) => {
-          if (active) setQr(url);
-        })
-        .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [qrUrl]);
+  const [copied, setCopied] = useState(false);
   if (query.isPending) return <LoadingState />;
   if (query.isError)
     return <ErrorState message={customerApiError(query.error)} onRetry={() => query.refetch()} />;
@@ -203,36 +188,47 @@ export function CustomerBookingDetail({ id }: { id: string }) {
           </AlertDialog>
         </div>
 
-        {/* Right Column: QR Code & Thanh toán */}
+        {/* Right Column: Đặt kho & Thanh toán */}
         <div className="space-y-6">
           <Card className="rounded-2xl border-slate-200/80 p-6 shadow-2xs">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <QrIcon className="size-5 text-primary" />
-              <span>Mã QR nhận kho</span>
+              <ReceiptText className="size-5 text-primary" />
+              <span>Thông tin đặt kho & Thanh toán</span>
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Xuất trình mã này cho nhân viên lễ tân tại cơ sở để bắt đầu thủ tục nhận kho.
+              Xuất trình mã đặt kho này cho nhân viên lễ tân khi đến cơ sở nhận ô kho.
             </p>
 
-            <div className="my-4 flex justify-center">
-              {qr ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-xs">
-                  <Image
-                    unoptimized
-                    src={qr}
-                    width={200}
-                    height={200}
-                    alt="Mã QR nhận kho"
-                    className="rounded-lg"
-                  />
+            <div className="my-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                    Mã đặt kho
+                  </span>
+                  <strong className="font-mono text-base font-bold text-slate-800">
+                    {formatReference(b.bookingCode ?? b.id, "BK")}
+                  </strong>
                 </div>
-              ) : (
-                <div className="grid h-48 w-full place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center p-4">
-                  <p className="text-xs text-slate-500">
-                    Mã QR đang được xử lý hoặc chưa khả dụng cho trạng thái này.
-                  </p>
-                </div>
-              )}
+                <button
+                  type="button"
+                  className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(b.bookingCode ?? b.id);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      setCopied(false);
+                    }
+                  }}
+                  aria-label="Sao chép mã đặt kho"
+                >
+                  <Copy size={15} />
+                </button>
+              </div>
+              {copied ? (
+                <span className="text-emerald-700 font-bold text-xs mt-1 block">Đã sao chép</span>
+              ) : null}
             </div>
 
             <div className="border-t border-slate-100 pt-4 space-y-2.5">
