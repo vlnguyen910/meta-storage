@@ -2,6 +2,7 @@ import {
   type FacilityTaskDetail,
   FacilityTaskStatus,
   FacilityTaskType,
+  INSPECTION_PHOTO_MAX_COUNT,
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import { apiErrorDetailMessage } from "../../common/api-error.utils";
 import type { StaffSelection, StaffWorkFilters } from "../../common/staff-api.types";
 import { filterStaffWork } from "../../common/staff-work.utils";
 import { api } from "../../lib/api";
-import { pickImage } from "../../lib/pick-image";
+import { pickImages } from "../../lib/pick-image";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 
 export function staffError(error: unknown): string {
@@ -168,8 +169,10 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
-      const input = await pickImage(camera);
-      return input ? api.inspections.upload(record?.id ?? "", input) : null;
+      const remaining = Math.max(0, INSPECTION_PHOTO_MAX_COUNT - (record?.evidence.length ?? 0));
+      if (remaining <= 0) return null;
+      const inputs = await pickImages({ camera, limit: remaining });
+      return inputs.length && record ? api.inspections.upload(record.id, inputs) : null;
     },
     onSuccess: refresh,
   });
@@ -282,8 +285,10 @@ export function useStaffReturn(owner: string, appointmentId: string) {
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
-      const input = await pickImage(camera);
-      return input && record ? api.inspections.upload(record.id, input) : null;
+      const remaining = Math.max(0, INSPECTION_PHOTO_MAX_COUNT - (record?.evidence.length ?? 0));
+      if (remaining <= 0) return null;
+      const inputs = await pickImages({ camera, limit: remaining });
+      return inputs.length && record ? api.inspections.upload(record.id, inputs) : null;
     },
     onSuccess: refresh,
   });
@@ -354,8 +359,13 @@ export function useStaffUnitInspection(owner: string, task: FacilityTaskDetail) 
   });
   const photo = useMutation({
     mutationFn: async (camera: boolean) => {
-      const input = await pickImage(camera);
-      return input && recordQuery.data ? api.inspections.upload(recordQuery.data.id, input) : null;
+      const currentCount = recordQuery.data?.evidence.length ?? 0;
+      const remaining = Math.max(0, INSPECTION_PHOTO_MAX_COUNT - currentCount);
+      if (remaining <= 0) return null;
+      const inputs = await pickImages({ camera, limit: remaining });
+      return inputs.length && recordQuery.data
+        ? api.inspections.upload(recordQuery.data.id, inputs)
+        : null;
     },
     onSuccess: async (record) => {
       if (record) client.setQueryData(inspectionKey, record);

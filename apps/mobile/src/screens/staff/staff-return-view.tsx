@@ -80,10 +80,15 @@ export function StaffReturnView({
   const locked = record?.status === "PASSED";
   const selectedPhoto = record?.evidence[photoIndex];
 
+  const previousCountRef = useRef(record?.evidence.length ?? 0);
   useEffect(() => {
-    setPhotoIndex((currentIndex) =>
-      Math.min(currentIndex, Math.max(0, (record?.evidence.length ?? 0) - 1)),
-    );
+    const currentLength = record?.evidence.length ?? 0;
+    if (currentLength > previousCountRef.current) {
+      setPhotoIndex(currentLength - 1);
+    } else {
+      setPhotoIndex((currentIndex) => Math.min(currentIndex, Math.max(0, currentLength - 1)));
+    }
+    previousCountRef.current = currentLength;
   }, [record?.evidence.length]);
 
   function setChecklistResult(code: string, result: "PASS" | "FAIL") {

@@ -502,9 +502,11 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.get<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`).then(unwrap),
       save: (id: string, input: UpdateInspectionInput) =>
         http.patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, input).then(unwrap),
-      upload: (id: string, input: InspectionEvidenceInput) =>
+      upload: (id: string, input: InspectionEvidenceInput | InspectionEvidenceInput[]) =>
         http
-          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, { addEvidence: [input] })
+          .patch<ApiEnvelope<InspectionRecord>>(`/inspections/${id}`, {
+            addEvidence: Array.isArray(input) ? input : [input],
+          })
           .then(unwrap),
       removePhoto: (id: string, photoId: string) =>
         http
