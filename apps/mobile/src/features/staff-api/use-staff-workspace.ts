@@ -3,16 +3,18 @@ import {
   FacilityTaskStatus,
   FacilityTaskType,
   INSPECTION_PHOTO_MAX_COUNT,
+  type PaymentPendingResponse,
   type UpdateInspectionInput,
 } from "@metastorage/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiErrorDetailMessage } from "../../common/api-error.utils";
 import type { StaffSelection, StaffWorkFilters } from "../../common/staff-api.types";
 import { filterStaffWork } from "../../common/staff-work.utils";
 import { api } from "../../lib/api";
 import { pickImages } from "../../lib/pick-image";
+import { customerCommandId } from "../customer-api/customer-native";
 import { onStaffTaskAssigned } from "../realtime/staff-assignment-events";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 
@@ -401,5 +403,51 @@ export function useStaffUnitInspection(owner: string, task: FacilityTaskDetail) 
     photo,
     removePhoto,
     busy: start.isPending || save.isPending || photo.isPending || removePhoto.isPending,
+  };
+}
+
+/**
+ * Fees left after a finalized return. Staff collects the full remaining amount in cash, or opens
+ * SePay so the customer can scan the QR and transfer it.
+ */
+export function useStaffReturnDebt(owner: string, rentalId: string) {
+  // Reused when a receipt is retried, so an uncertain first attempt is never recorded twice.
+  const [idempotencyKey, setIdempotencyKey] = useState(customerCommandId);
+  const [session, setSession] = useState<PaymentPendingResponse | null>(null),
+    [awaiting, setAwaiting] = useState(false);
+  const debts = useQuery({
+    queryKey: ["mobile-return-debts", owner, rentalId],
+    queryFn: () => api.debts.list({ rentalId, limit: 10 }),
+    // SePay confirms through a webhook; keep checking after a checkout until the fee is paid.
+    refetchInterval: (query) =>
+      awaiting && query.state.data?.items.some((debt) => debt.status !== "PAID") ? 5000 : false,
+  });
+  const collect = useMutation({
+    mutationFn: (debt: { id: string; remainingAmount: string }) =>
+      api.debts.collect(debt.id, {
+        method: "CASH",
+        amount: Number(debt.remainingAmount),
+        idempotencyKey,
+      }),
+    onSuccess: async () => {
+      setIdempotencyKey(customerCommandId());
+      await debts.refetch();
+    },
+  });
+  const sepay = useMutation({
+    mutationFn: (debtId: string) => api.debts.startSepay(debtId),
+    onSuccess: setSession,
+  });
+  return {
+    debts,
+    collect,
+    sepay,
+    session,
+    awaiting,
+    closeGateway: () => {
+      setSession(null);
+      setAwaiting(true);
+      void debts.refetch();
+    },
   };
 }
