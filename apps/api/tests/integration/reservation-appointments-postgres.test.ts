@@ -1387,7 +1387,8 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
           200,
         );
         session.mockResolvedValue({ user: { ...f.staff, status: "ACTIVE" }, session: {} } as never);
-        const finalPayment = await app.inject({
+        // Staff records cash only; transfers go through the customer's SePay checkout.
+        const transfer = await app.inject({
           method: "POST",
           url: `/api/debts/${debt.id}/payments`,
           payload: {
@@ -1396,6 +1397,12 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
             reference: "DEBT-FINAL",
             idempotencyKey: randomUUID(),
           },
+        });
+        expect(transfer.statusCode).toBe(400);
+        const finalPayment = await app.inject({
+          method: "POST",
+          url: `/api/debts/${debt.id}/payments`,
+          payload: { amount: 30000, method: "CASH", idempotencyKey: randomUUID() },
         });
         expect(finalPayment.statusCode).toBe(200);
         expect(finalPayment.json().data).toMatchObject({ status: "PAID", remainingAmount: "0" });

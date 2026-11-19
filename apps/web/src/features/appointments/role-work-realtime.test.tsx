@@ -93,7 +93,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it("updates customer appointment lists/open details while leaving rentals and notifications untouched", async () => {
+it("updates customer appointment lists/open details and rentals while leaving notifications untouched", async () => {
   const h = harness("CUSTOMER", [
     ["customer-appointments", "customer:CUSTOMER"],
     ["appointments", "customer:CUSTOMER", "mine"],
@@ -119,7 +119,7 @@ it("updates customer appointment lists/open details while leaving rentals and no
   expect(h.loads.every((load) => load.mock.calls.length === 2)).toBe(true);
   expect(
     h.client.getQueryState(["rentals", "mine", "current", "customer:CUSTOMER"])?.isInvalidated,
-  ).toBe(false);
+  ).toBe(true);
   expect(
     h.client.getQueryState(["lifecycle-notifications", "customer:CUSTOMER"])?.isInvalidated,
   ).toBe(false);
