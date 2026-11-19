@@ -50,12 +50,12 @@ beforeEach(() => {
   mocks.list.mockResolvedValue({ items: [debt], total: 1, limit: 10, offset: 0 });
   mocks.get.mockResolvedValue({ ...debt, payments: [] });
 });
-test("Staff retries a failed receipt with the same idempotency key", async () => {
+test("Staff collects the full fee in cash and retries with the same idempotency key", async () => {
   mocks.collect.mockRejectedValueOnce(new Error("Network uncertain")).mockResolvedValueOnce({
     ...debt,
-    status: "PARTIALLY_PAID",
-    paidAmount: "20000",
-    remainingAmount: "30000",
+    status: "PAID",
+    paidAmount: "50000",
+    remainingAmount: "0",
     payments: [],
   });
   const user = userEvent.setup();
@@ -63,14 +63,13 @@ test("Staff retries a failed receipt with the same idempotency key", async () =>
   await user.click(
     await screen.findByRole("button", { name: "Thu tiền mặt / xem lịch sử" }, { timeout: 3000 }),
   );
-  await user.type(await screen.findByLabelText("Số tiền mặt đã nhận (VND)"), "20000");
-  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
+  await user.click(await screen.findByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }));
   await screen.findByRole("alert");
-  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }));
+  await user.click(screen.getByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }));
   await waitFor(() => expect(mocks.collect).toHaveBeenCalledTimes(2));
   expect(mocks.collect.mock.calls[0]?.[1]).toEqual(mocks.collect.mock.calls[1]?.[1]);
   expect(mocks.collect.mock.calls[0]?.[1]).toMatchObject({
-    amount: 20000,
+    amount: 50000,
     method: "CASH",
     idempotencyKey: expect.any(String),
   });
@@ -81,7 +80,9 @@ test("Manager can read debt history without collecting or paying", async () => {
   view();
   await user.click(await screen.findByRole("button", { name: "Xem lịch sử" }));
   await screen.findByText("Chưa ghi nhận khoản thu nào.");
-  expect(screen.queryByLabelText("Số tiền mặt đã nhận (VND)")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }),
+  ).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Thanh toán qua SePay" })).not.toBeInTheDocument();
 });
 test("Customer pays the remaining fee through SePay", async () => {
@@ -91,7 +92,9 @@ test("Customer pays the remaining fee through SePay", async () => {
   const user = userEvent.setup();
   view();
   await user.click(await screen.findByRole("button", { name: "Thanh toán" }));
-  expect(screen.queryByLabelText("Số tiền mặt đã nhận (VND)")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Xác nhận đã nhận đủ tiền mặt" }),
+  ).not.toBeInTheDocument();
   await user.click(await screen.findByRole("button", { name: "Thanh toán qua SePay" }));
   await waitFor(() => expect(mocks.startSepay).toHaveBeenCalledWith("debt"));
   await waitFor(() => expect(mocks.submit).toHaveBeenCalledWith(session));

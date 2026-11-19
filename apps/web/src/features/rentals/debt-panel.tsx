@@ -1,11 +1,9 @@
 "use client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  type DebtPaymentInput,
-  DebtPaymentInputSchema,
-  type DebtQuery,
-  type DebtRecord,
-  type ReturnSettlement,
+import type {
+  DebtPaymentInput,
+  DebtQuery,
+  DebtRecord,
+  ReturnSettlement,
 } from "@metastorage/contracts";
 import { UserRole } from "@metastorage/database/schema/user-enums";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +19,6 @@ import {
   Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -351,14 +348,12 @@ function DebtHistory({
     if (detailStatus && detailStatus !== debt.status)
       void client.invalidateQueries({ queryKey: ["debts"] });
   }, [detailStatus, debt.status, client]);
-  const form = useForm<DebtPaymentInput>({
-    resolver: zodResolver(DebtPaymentInputSchema),
-    defaultValues: { method: "CASH", idempotencyKey: crypto.randomUUID() },
-  });
+  // Reused when a cash receipt is retried, so an uncertain first attempt is never recorded twice.
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const collect = useMutation({
     mutationFn: (input: DebtPaymentInput) => api.debts.collect(debt.id, input),
     onSuccess: async () => {
-      form.reset({ method: "CASH", idempotencyKey: crypto.randomUUID() });
+      setIdempotencyKey(crypto.randomUUID());
       showToast(M.confirmed, "success");
       await Promise.all([
         client.invalidateQueries({ queryKey: ["debts"] }),
@@ -435,50 +430,28 @@ function DebtHistory({
             </span>
           </div>
 
-          <form
-            className="grid gap-3 sm:grid-cols-2"
-            onSubmit={form.handleSubmit((input) => collect.mutate(input))}
-          >
-            <label className="block text-xs font-semibold text-slate-700">
-              <span className="block mb-1">{M.amount}</span>
-              <input
-                type="number"
-                required
-                min={1}
-                max={Number(detail.data.remainingAmount)}
-                step={1}
-                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-normal"
-                disabled={collect.isPending}
-                {...form.register("amount", { valueAsNumber: true })}
-              />
-            </label>
-
-            <p className="flex items-center gap-1.5 self-end pb-2 text-xs text-slate-600">
-              <Banknote size={14} className="text-emerald-700" aria-hidden="true" />
-              {M.cashOnly}
-            </p>
-
-            {Object.values(form.formState.errors).map((error) => (
-              <p
-                role="alert"
-                className="text-xs font-semibold text-rose-600 sm:col-span-2"
-                key={error.message}
-              >
-                {error.message}
-              </p>
-            ))}
-
-            <div className="sm:col-span-2 flex justify-end pt-1">
-              <Button
-                type="submit"
-                disabled={collect.isPending}
-                loading={collect.isPending}
-                className="min-h-0 h-8.5 px-4 text-xs font-bold"
-              >
-                {M.collect}
-              </Button>
-            </div>
-          </form>
+          <p className="flex items-center gap-1.5 text-xs text-slate-600">
+            <Banknote size={14} className="text-emerald-700" aria-hidden="true" />
+            {M.cashOnly}
+          </p>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              disabled={collect.isPending}
+              loading={collect.isPending}
+              // The full remaining fee is collected in one cash payment.
+              onClick={() =>
+                collect.mutate({
+                  method: "CASH",
+                  amount: Number(detail.data.remainingAmount),
+                  idempotencyKey,
+                })
+              }
+              className="min-h-0 h-8.5 px-4 text-xs font-bold"
+            >
+              {M.collect}
+            </Button>
+          </div>
         </div>
       )}
 
