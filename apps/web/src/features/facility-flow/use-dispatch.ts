@@ -19,6 +19,18 @@ export type DispatchItem = Omit<BookingListItem, "assignedUnit" | "assignedStaff
   paymentStatus: string | null;
 };
 export type DispatchAppointmentType = APPOINTMENT_TYPES | "ALL";
+export type DispatchFilterTab = "ALL" | APPOINTMENT_TYPES | "COMPLETED";
+
+export function isCompletedDispatchItem(b: DispatchItem): boolean {
+  const r = readiness(b);
+  return (
+    r === "CHECKED_IN" ||
+    r === "COMPLETED" ||
+    b.status === "CHECKED_IN" ||
+    b.status === "COMPLETED" ||
+    b.appointmentStatus === "COMPLETED"
+  );
+}
 export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
   const r = a.reservation;
   return {
@@ -117,15 +129,23 @@ export function useDispatch(
     enabled: !!facilityId,
     refetchInterval: 30000,
   });
-  const [typeFilter, setTypeFilter] = useState<"ALL" | APPOINTMENT_TYPES>("ALL");
+  const [typeFilter, setTypeFilter] = useState<DispatchFilterTab>("ALL");
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const bookings = [...(query.data ?? [])].sort(
     (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
   );
+  const matchesTypeAndCompletion = (b: DispatchItem) => {
+    if (typeFilter === "COMPLETED") {
+      return isCompletedDispatchItem(b);
+    }
+    return (
+      !isCompletedDispatchItem(b) && (typeFilter === "ALL" || b.appointmentType === typeFilter)
+    );
+  };
   const filtered = bookings.filter(
     (b) =>
-      (typeFilter === "ALL" || b.appointmentType === typeFilter) &&
+      matchesTypeAndCompletion(b) &&
       (filter === "ALL" || readiness(b) === filter) &&
       [
         b.bookingCode,
@@ -136,11 +156,16 @@ export function useDispatch(
       ].some((v) => v.toLowerCase().includes(search.trim().toLowerCase())),
   );
   const count = (status: string) =>
-    bookings.filter(
-      (b) => (typeFilter === "ALL" || b.appointmentType === typeFilter) && readiness(b) === status,
-    ).length;
-  const typeCount = (type: "ALL" | APPOINTMENT_TYPES) =>
-    type === "ALL" ? bookings.length : bookings.filter((b) => b.appointmentType === type).length;
+    bookings.filter((b) => matchesTypeAndCompletion(b) && readiness(b) === status).length;
+  const typeCount = (type: DispatchFilterTab) => {
+    if (type === "COMPLETED") {
+      return bookings.filter(isCompletedDispatchItem).length;
+    }
+    if (type === "ALL") {
+      return bookings.filter((b) => !isCompletedDispatchItem(b)).length;
+    }
+    return bookings.filter((b) => !isCompletedDispatchItem(b) && b.appointmentType === type).length;
+  };
   return {
     query,
     bookings,
