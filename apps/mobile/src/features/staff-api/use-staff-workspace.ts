@@ -13,7 +13,7 @@ import type { StaffSelection, StaffWorkFilters } from "../../common/staff-api.ty
 import { filterStaffWork } from "../../common/staff-work.utils";
 import { api } from "../../lib/api";
 import { pickImages } from "../../lib/pick-image";
-import { onStaffTaskAssigned } from "../realtime/use-work-realtime";
+import { onStaffTaskAssigned } from "../realtime/staff-assignment-events";
 import { STAFF_API_UI as M } from "./staff-api.messages";
 
 export function staffError(error: unknown): string {

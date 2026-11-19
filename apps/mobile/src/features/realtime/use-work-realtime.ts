@@ -9,22 +9,12 @@ import { AppState, Platform } from "react-native";
 import { api } from "../../lib/api";
 import { authClient } from "../../lib/auth-client";
 import { WEB_BASE_URL } from "../../lib/runtime-config";
+import { emitStaffTaskAssigned } from "./staff-assignment-events";
 
 // React Native accepts connection headers; the DOM constructor's typings omit this overload.
 const NativeWebSocket = WebSocket as typeof WebSocket & {
   new (url: string, protocols: string[], options: { headers: Record<string, string> }): WebSocket;
 };
-
-type AssignmentListener = (event: StaffTaskAssignedNotification) => void;
-const assignmentListeners = new Set<AssignmentListener>();
-
-/** Lets the open staff workspace announce new work; returns the unsubscribe function. */
-export function onStaffTaskAssigned(listener: AssignmentListener) {
-  assignmentListeners.add(listener);
-  return () => {
-    assignmentListeners.delete(listener);
-  };
-}
 
 export function useWorkRealtime(userId?: string, role?: string) {
   const client = useQueryClient();
@@ -70,8 +60,7 @@ export function useWorkRealtime(userId?: string, role?: string) {
           event?.type === "STAFF_TASK_ASSIGNED" &&
           event.recipientId === userId
         ) {
-          for (const listener of assignmentListeners)
-            listener(event as StaffTaskAssignedNotification);
+          emitStaffTaskAssigned(event as StaffTaskAssignedNotification);
           if (!timer) {
             timer = setTimeout(() => {
               timer = undefined;
