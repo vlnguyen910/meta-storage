@@ -8,9 +8,9 @@ export interface SystemSettingSnapshot {
 export interface SystemSettingDto extends SystemSettingSnapshot {
   key: SystemSettingKeyValue;
   description: string;
-  category: "RENTAL" | "FINANCE" | "OPERATIONS";
+  category: "RENTAL" | "FINANCE" | "OPERATIONS" | "SYSTEM";
   valueType: "INTEGER";
-  unit: "DAYS" | "PERCENT" | "MONTHS" | "HOUR";
+  unit: "DAYS" | "PERCENT" | "MONTHS" | "HOUR" | "MEGABYTES";
   updatedBy: string | null;
   updatedAt: string;
 }

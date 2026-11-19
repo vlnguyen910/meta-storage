@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { CoverImageUploadInput } from "@metastorage/contracts";
-import { CloudinaryResourceType, type MediaAsset } from "@metastorage/database";
+import { CloudinaryResourceType, eq, type MediaAsset, systemSettings } from "@metastorage/database";
 import { CloudinaryAdapter } from "../../common/adapters/storage/cloudinary.adapter";
 import type { CloudinaryResource } from "../../common/adapters/storage/cloudinary.types";
 import { BadRequestError, NotFoundError } from "../../common/errors/app-error";
@@ -23,7 +23,7 @@ export class MediaAssetsService {
     userId: string,
     input: MediaAssetImageInput,
   ) {
-    const bytes = this.decodeImage(input.mimeType, input.dataBase64);
+    const bytes = await this.decodeImage(input.mimeType, input.dataBase64);
     const publicId = `metastorage/media-assets/${randomUUID()}`;
     const stored = await this.cloudinary.upload(
       `data:${input.mimeType};base64,${input.dataBase64}`,
@@ -56,7 +56,7 @@ export class MediaAssetsService {
   }
 
   async uploadCoverImage(input: CoverImageUploadInput): Promise<{ coverUrl: string }> {
-    this.decodeImage(input.mimeType, input.dataBase64, m.invalidCoverImage);
+    await this.decodeImage(input.mimeType, input.dataBase64, m.invalidCoverImage);
     const stored = await this.cloudinary.uploadPublicImage(
       `data:${input.mimeType};base64,${input.dataBase64}`,
       { publicId: `metastorage/covers/${randomUUID()}`, resourceType: "image" },
@@ -92,15 +92,36 @@ export class MediaAssetsService {
     };
   }
 
-  private decodeImage(mimeType: string, value: string, errorMessage: string = m.invalidImage) {
+  private async getMaxImageBytes(): Promise<number> {
+    try {
+      const rows = await this.repository.db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "CLOUDINARY_MAX_UPLOAD_MB"));
+      const mb = Number(rows[0]?.value);
+      if (Number.isFinite(mb) && mb > 0) {
+        return mb * 1024 * 1024;
+      }
+    } catch {
+      /* ignore */
+    }
+    return MAX_IMAGE_BYTES;
+  }
+
+  private async decodeImage(
+    mimeType: string,
+    value: string,
+    errorMessage: string = m.invalidImage,
+  ) {
     if (!/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value))
       throw new BadRequestError(errorMessage);
     const bytes = Buffer.from(value, "base64");
     const canonical = bytes.toString("base64");
+    const maxBytes = await this.getMaxImageBytes();
     const matches =
       canonical === value &&
       bytes.byteLength > 0 &&
-      bytes.byteLength <= MAX_IMAGE_BYTES &&
+      bytes.byteLength <= maxBytes &&
       ((mimeType === "image/jpeg" &&
         bytes[0] === 0xff &&
         bytes[1] === 0xd8 &&

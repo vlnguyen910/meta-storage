@@ -14,7 +14,7 @@ export const mediaAssetsRoutes: FastifyPluginAsync = async (app) => {
   typed.post(
     "/cover-image",
     {
-      bodyLimit: 4.5 * 1024 * 1024,
+      bodyLimit: 30 * 1024 * 1024,
       preHandler: [requireRole("SYSTEM_ADMIN", "BUSINESS_OPERATION_MANAGER", "FACILITY_MANAGER")],
       schema: {
         tags: ["Media Assets"],

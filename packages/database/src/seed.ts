@@ -1423,6 +1423,7 @@ async function seedPolicies(seedNow: Date) {
     "VAT_RATE",
     "OPENING_HOUR",
     "CLOSING_HOUR",
+    "CLOUDINARY_MAX_UPLOAD_MB",
   ] as const;
   await db
     .insert(systemSettings)

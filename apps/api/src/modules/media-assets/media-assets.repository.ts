@@ -1,7 +1,7 @@
 import { and, asc, type Database, eq, mediaAssets } from "@metastorage/database";
 
 export class MediaAssetsRepository {
-  constructor(private readonly db: Database) {}
+  constructor(readonly db: Database) {}
 
   async create(input: typeof mediaAssets.$inferInsert) {
     const [asset] = await this.db.insert(mediaAssets).values(input).returning();
