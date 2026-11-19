@@ -7,6 +7,7 @@ import axios from "axios";
 import {
   Calendar,
   CalendarCheck,
+  CalendarClock,
   CheckCircle2,
   Clock,
   HelpCircle,
@@ -282,7 +283,11 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
                     activeReturn ? setConfirmCancelReturn(true) : setShowReturnForm(true)
                   }
                 >
-                  <RotateCcw className="size-3.5" />
+                  {hasPendingReturn ? (
+                    <RotateCcw className="size-3.5" />
+                  ) : (
+                    <CalendarClock className="size-3.5" />
+                  )}
                   <span>
                     {appointments.isPending
                       ? M.returnAppointmentsLoading
