@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
   INSPECTION_PHOTO_MAX_BYTES,
+  INSPECTION_PHOTO_MAX_COUNT,
   InspectionEvidenceInputSchema,
   SUPPORT_IMAGE_MAX_BYTES,
+  UpdateInspectionInputSchema,
 } from "@metastorage/contracts";
 import { PICK_IMAGE as M } from "../src/lib/pick-image.messages";
 import { prepareImageUpload } from "../src/lib/prepare-image-upload";
@@ -91,5 +93,28 @@ describe("mobile image upload normalization", () => {
     const base64 = jpegOfSize(4 * 1024 * 1024);
     expect(() => prepareImageUpload({ base64 })).toThrow(M.tooLarge(INSPECTION_PHOTO_MAX_BYTES));
     expect(prepareImageUpload({ base64 }, SUPPORT_IMAGE_MAX_BYTES).mimeType).toBe("image/jpeg");
+  });
+  test("accepts multiple inspection evidence inputs up to the limit in UpdateInspectionInputSchema", () => {
+    const validEvidence = Array.from({ length: INSPECTION_PHOTO_MAX_COUNT }, (_, i) => ({
+      filename: `photo-${i}.jpg`,
+      mimeType: "image/jpeg" as const,
+      dataBase64: JPEG,
+    }));
+    const updateInput = {
+      addEvidence: validEvidence,
+    };
+    expect(UpdateInspectionInputSchema.safeParse(updateInput).success).toBe(true);
+
+    const overLimit = {
+      addEvidence: [
+        ...validEvidence,
+        {
+          filename: "photo-extra.jpg",
+          mimeType: "image/jpeg" as const,
+          dataBase64: JPEG,
+        },
+      ],
+    };
+    expect(UpdateInspectionInputSchema.safeParse(overLimit).success).toBe(false);
   });
 });

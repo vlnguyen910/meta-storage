@@ -173,7 +173,7 @@ export const UpdateInspectionInputSchema = z
     condition: InspectionConditionValueSchema.nullable().optional(),
     checklist: z.record(z.string(), z.unknown()).optional(),
     notes: z.string().max(4000, INSPECTION_MESSAGES.notesLimit).nullable().optional(),
-    addEvidence: z.array(InspectionEvidenceInputSchema).max(1).optional(),
+    addEvidence: z.array(InspectionEvidenceInputSchema).max(INSPECTION_PHOTO_MAX_COUNT).optional(),
     removeEvidenceIds: z.array(z.string().uuid()).max(INSPECTION_PHOTO_MAX_COUNT).optional(),
     violations: z.array(InspectionViolationInputSchema).max(100).optional(),
     policyVersion: z.number().int().nonnegative().optional(),

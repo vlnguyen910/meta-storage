@@ -52,8 +52,15 @@ export function StaffUnitInspectionView({
     setNotes(record.notes ?? "");
   }, [record]);
 
+  const previousCountRef = useRef(record?.evidence.length ?? 0);
   useEffect(() => {
-    setPhotoIndex((current) => Math.min(current, Math.max(0, (record?.evidence.length ?? 0) - 1)));
+    const currentLength = record?.evidence.length ?? 0;
+    if (currentLength > previousCountRef.current) {
+      setPhotoIndex(currentLength - 1);
+    } else {
+      setPhotoIndex((current) => Math.min(current, Math.max(0, currentLength - 1)));
+    }
+    previousCountRef.current = currentLength;
   }, [record?.evidence.length]);
 
   const checklistCanPass = HandoverChecklistCompletionSchema.safeParse(results).success;
