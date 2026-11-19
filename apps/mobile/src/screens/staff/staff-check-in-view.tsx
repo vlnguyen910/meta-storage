@@ -359,46 +359,47 @@ function InspectionEditor({
   });
   return (
     <Card title={M.checklist}>
-      {HANDOVER_CHECKLIST_ITEMS.map((item) => (
-        <View key={item.code} className="mb-5 rounded-xl bg-slate-50 p-3">
-          <Text className="mb-3 font-semibold leading-6 text-slate-800">{item.label}</Text>
-          <View className="flex-row gap-2">
-            {(["PASS", "FAIL"] as const).map((result) => {
-              const selected =
-                results.find((entry) => entry.itemCode === item.code)?.result === result;
-              return (
-                <Pressable
-                  key={result}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`${item.label}: ${result === "PASS" ? M.pass : M.fail}`}
-                  accessibilityState={{ checked: selected, disabled: locked || busy }}
-                  disabled={locked || busy}
-                  onPress={() =>
-                    setResults((previous) => [
-                      ...previous.filter((entry) => entry.itemCode !== item.code),
-                      {
-                        itemCode: item.code,
-                        resultType: "PASS_FAIL",
-                        result,
-                        note: previous.find((entry) => entry.itemCode === item.code)?.note ?? null,
-                        photos:
-                          previous.find((entry) => entry.itemCode === item.code)?.photos ?? [],
-                      },
-                    ])
-                  }
-                  className={`min-h-11 flex-1 items-center justify-center rounded-lg border ${selected ? (result === "PASS" ? "border-primary bg-primary" : "border-danger-strong bg-danger-strong") : "border-outline-variant bg-customer-canvas"}`}
+      {HANDOVER_CHECKLIST_ITEMS.map((item) => {
+        const selected = results.find((entry) => entry.itemCode === item.code)?.result === "PASS";
+        return (
+          <View key={item.code} className="mb-5 rounded-xl bg-slate-50 p-3">
+            <Text className="mb-3 font-semibold leading-6 text-slate-800">{item.label}</Text>
+            <View className="flex-row gap-2">
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${item.label}: ${M.pass}`}
+                accessibilityState={{ checked: selected, disabled: locked || busy }}
+                disabled={locked || busy}
+                onPress={() =>
+                  setResults((previous) =>
+                    selected
+                      ? previous.filter((entry) => entry.itemCode !== item.code)
+                      : [
+                          ...previous.filter((entry) => entry.itemCode !== item.code),
+                          {
+                            itemCode: item.code,
+                            resultType: "PASS_FAIL",
+                            result: "PASS",
+                            note:
+                              previous.find((entry) => entry.itemCode === item.code)?.note ?? null,
+                            photos:
+                              previous.find((entry) => entry.itemCode === item.code)?.photos ?? [],
+                          },
+                        ],
+                  )
+                }
+                className={`min-h-11 flex-1 items-center justify-center rounded-lg border ${selected ? "border-primary bg-primary" : "border-outline-variant bg-customer-canvas"}`}
+              >
+                <Text
+                  className={`font-semibold ${selected ? "text-primary-foreground" : "text-muted"}`}
                 >
-                  <Text
-                    className={`font-semibold ${selected ? "text-primary-foreground" : "text-muted"}`}
-                  >
-                    {result === "PASS" ? M.pass : M.fail}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                  {M.pass}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
       <Text className="mb-2 font-semibold text-slate-900">{M.condition}</Text>
       <View className="mb-4 flex-row flex-wrap gap-2">
         {(["GOOD", "MINOR_DAMAGE", "MAJOR_DAMAGE"] as const).map((value) => (
