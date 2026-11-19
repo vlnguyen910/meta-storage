@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -131,20 +131,13 @@ export function SystemAdministratorShell({ children }: Readonly<AdminShellProps>
             {systemAdministratorNavigation.find((item) => item.href === pathname)?.label ?? M.role}
           </span>
         </nav>
-        <div className="ml-auto flex items-center gap-3">
-          {contextLabel && (
+        {contextLabel && (
+          <div className="ml-auto flex items-center gap-3">
             <span className="hidden rounded-full bg-emerald-50 px-2 py-1.5 text-center text-xs font-semibold text-emerald-900 sm:inline-block">
               {contextLabel}
             </span>
-          )}
-          <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
-            <User size={18} aria-hidden="true" />
-          </span>
-          <div className="hidden border-l border-slate-200 pl-3 md:block">
-            <strong className="block text-xs text-slate-800">{user?.name}</strong>
-            <span className="block text-[11px] text-slate-500">{M.role}</span>
           </div>
-        </div>
+        )}
       </header>
       {logout.isError && (
         <p role="alert" className="m-0 bg-red-50 p-3 text-center text-sm text-red-700">

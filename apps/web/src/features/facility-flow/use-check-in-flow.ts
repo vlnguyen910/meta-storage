@@ -134,11 +134,15 @@ export function useCheckInFlow() {
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
-  const current = history.data?.find(
-    (inspection) =>
-      inspection.inspectionType === "CHECK_IN" &&
-      inspection.storageUnitId === result?.assignedUnit?.physicalUnitId,
-  );
+  const current =
+    history.data?.find(
+      (inspection) =>
+        inspection.inspectionType === "CHECK_IN" &&
+        (!result?.assignedUnit?.physicalUnitId ||
+          inspection.storageUnitId === result.assignedUnit.physicalUnitId),
+    ) ??
+    history.data?.find((inspection) => inspection.inspectionType === "CHECK_IN") ??
+    history.data?.[0];
   const view = params.get("view") ?? "verify";
   const navigate = (next: string) => {
     const query = new URLSearchParams(params.toString());
