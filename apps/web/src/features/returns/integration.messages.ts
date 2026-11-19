@@ -139,7 +139,7 @@ export const F3 = {
   rateHelp:
     "Tỷ lệ này được áp trên số tiền cọc snapshot khi hồ sơ quá hạn; không tính trên tiền thuê và không tính lại khoản đã có snapshot.",
   financeHelp:
-    "Chính sách cọc tiếp tục được quản lý tại Quy tắc kinh doanh. Các loại phí khác chưa hỗ trợ cấu hình.",
+    "Chính sách cọc tiếp tục được quản lý tại Chính sách tiền cọc. Các loại phí khác chưa hỗ trợ cấu hình.",
   history: "Lịch sử thay đổi",
   noHistory: "Chưa có thay đổi.",
   actor: "Người thực hiện",
