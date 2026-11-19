@@ -4,7 +4,7 @@ import type { FacilityTaskDetail } from "@metastorage/contracts";
 import { FacilityTaskReferenceType } from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Eye, Plus } from "lucide-react";
+import { ExternalLink, Eye, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { OperationalBadge } from "@/components/ui/operational";
 import { ErrorState, LoadingState } from "@/components/ui/states";
+import { InspectionPhotoCard } from "@/features/facility-flow/inspection-screen";
 import { api } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { managementError, useFacilityTaskList, useTaskStaff } from "./hooks";
@@ -78,6 +79,13 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
     queryFn: () => api.rentals.facilityDetail(facilityId, rentalId),
     enabled: Boolean(rentalId),
   });
+  const inspections = useQuery({
+    queryKey: ["facility-task-related-inspections", facilityId, appointmentId],
+    queryFn: () => api.inspections.forAppointment(appointmentId),
+    enabled: Boolean(appointmentId),
+  });
+  const inspectionRecord =
+    inspections.data?.find((i) => i.taskId === selectedTask?.id) ?? inspections.data?.[0];
   if (query.isPending) return <LoadingState variant="table" />;
   if (query.isError)
     return <ErrorState message={managementError(query.error)} onRetry={() => query.refetch()} />;
@@ -228,6 +236,20 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                   ) : appointment.data ? (
                     <div className="grid gap-2 sm:grid-cols-2">
                       <DetailValue
+                        label={M.customer}
+                        value={appointment.data.customerName ?? "—"}
+                      />
+                      <DetailValue
+                        label={M.contactPhone}
+                        value={appointment.data.contactPhone ?? "—"}
+                      />
+                      {appointment.data.customerEmail && (
+                        <DetailValue
+                          label={M.contactEmail}
+                          value={appointment.data.customerEmail}
+                        />
+                      )}
+                      <DetailValue
                         label={M.appointmentType}
                         value={
                           M.appointmentTypes[appointment.data.appointmentType] ??
@@ -235,13 +257,15 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                         }
                       />
                       <DetailValue
-                        label={M.customer}
-                        value={appointment.data.customerName ?? "—"}
-                      />
-                      <DetailValue
                         label={M.appointmentSchedule}
                         value={`${formatDate(appointment.data.scheduledDate)} · ${appointment.data.slotStart?.slice(0, 5) ?? "—"}–${appointment.data.slotEnd?.slice(0, 5) ?? "—"}`}
                       />
+                      {appointment.data.assignedUnit?.physicalUnitCode && (
+                        <DetailValue
+                          label={M.assignedPhysicalUnit}
+                          value={appointment.data.assignedUnit.physicalUnitCode}
+                        />
+                      )}
                       {appointment.data.unitType?.name && (
                         <DetailValue label={F5.unitType} value={appointment.data.unitType.name} />
                       )}
@@ -274,6 +298,13 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                             </Link>
                           </>
                         ) : null)}
+                      <Link
+                        className="font-semibold text-primary inline-flex items-center gap-1.5 underline underline-offset-2 sm:col-span-2 mt-1 text-xs"
+                        href={`/facility-manager/check-in?appointmentId=${encodeURIComponent(appointmentId)}`}
+                      >
+                        <span>{M.openCheckInFlow}</span>
+                        <ExternalLink size={13} />
+                      </Link>
                     </div>
                   ) : null)}
                 {selectedTask.referenceType === FacilityTaskReferenceType.STORAGE_UNIT &&
@@ -303,6 +334,65 @@ export function TaskPanel({ facilityId, manager }: TaskPanelProps) {
                     />
                   )}
               </section>
+              {selectedTask.referenceType === FacilityTaskReferenceType.APPOINTMENT &&
+                (inspections.isPending ? (
+                  <LoadingState variant="detail" />
+                ) : inspectionRecord ? (
+                  <section className="grid gap-3 rounded-xl border border-line bg-slate-50/50 p-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-ink">{M.inspectionResult}</h3>
+                      {inspectionRecord.status && (
+                        <OperationalBadge
+                          value={inspectionRecord.status}
+                          label={
+                            inspectionRecord.status === "PASSED"
+                              ? "Đạt chuẩn"
+                              : inspectionRecord.status === "FAILED"
+                                ? "Không đạt"
+                                : "Đang kiểm tra"
+                          }
+                        />
+                      )}
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {inspectionRecord.condition && (
+                        <DetailValue
+                          label={M.inspectionCondition}
+                          value={
+                            M.conditionLabels[inspectionRecord.condition] ??
+                            inspectionRecord.condition
+                          }
+                        />
+                      )}
+                      {inspectionRecord.inspectDoneAt && (
+                        <DetailValue
+                          label={M.inspectDoneAt}
+                          value={formatDateTime(inspectionRecord.inspectDoneAt)}
+                        />
+                      )}
+                      {inspectionRecord.notes && (
+                        <div className="sm:col-span-2">
+                          <span className="text-xs text-muted block mb-1">{M.inspectionNotes}</span>
+                          <p className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-800 whitespace-pre-wrap">
+                            {inspectionRecord.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {inspectionRecord.evidence && inspectionRecord.evidence.length > 0 && (
+                      <div className="pt-2 border-t border-slate-200/80">
+                        <span className="text-xs font-semibold text-slate-700 block mb-2">
+                          {M.inspectionEvidence} ({inspectionRecord.evidence.length})
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {inspectionRecord.evidence.map((photo) => (
+                            <InspectionPhotoCard key={photo.id} photo={photo} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                ) : null)}
             </>
           )}
         </DialogContent>

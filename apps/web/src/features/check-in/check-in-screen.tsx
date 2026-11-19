@@ -74,13 +74,17 @@ function CheckInFlowScreen() {
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const result = flow.result;
   const reasons = result?.checkInReadiness.reasons ?? [];
+  const isCompleted = result?.booking.status === "CHECKED_IN" || flow.current?.status === "PASSED";
   const inspectionStarted = Boolean(flow.current);
-  const wantsInspection = ["inspect", "review", "handover"].includes(flow.view);
-  const locked = flow.current?.status === "PASSED" || flow.current?.status === "FAILED";
-  const passed = flow.current?.status === "PASSED";
-  const inspectionView = passed ? "handover" : flow.view === "handover" ? "review" : flow.view;
-  const active = wantsInspection && inspectionStarted ? (passed ? 3 : 2) : 1;
-  const completedHandover = wantsInspection && passed && result?.booking.status === "CHECKED_IN";
+  const wantsInspection = ["inspect", "review", "handover"].includes(flow.view) || isCompleted;
+  const locked =
+    flow.current?.status === "PASSED" || flow.current?.status === "FAILED" || isCompleted;
+  const passed = flow.current?.status === "PASSED" || isCompleted;
+  const inspectionView =
+    isCompleted || passed ? "handover" : flow.view === "handover" ? "review" : flow.view;
+  const active =
+    wantsInspection && (inspectionStarted || isCompleted) ? (passed || isCompleted ? 3 : 2) : 1;
+  const completedHandover = isCompleted;
   const title = completedHandover
     ? FLOW.handoverResultTitle
     : active === 3
@@ -706,7 +710,7 @@ function CheckInFlowScreen() {
           <h2 className="mt-3 text-sm font-bold text-slate-900">{FLOW.emptyTitle}</h2>
           <p className="mt-1 text-xs text-slate-500">{FLOW.emptyHint}</p>
         </Card>
-      ) : wantsInspection && inspectionStarted ? (
+      ) : wantsInspection && (inspectionStarted || isCompleted) ? (
         flow.history.isLoading ? (
           <LoadingState label={FLOW.loading} variant="table" />
         ) : flow.history.isError && !flow.history.data ? (
@@ -720,6 +724,62 @@ function CheckInFlowScreen() {
             onNavigate={flow.navigate}
             onBack={() => (locked ? router.push(returnTo) : flow.navigate("verify"))}
           />
+        ) : isCompleted ? (
+          <Card className="border-slate-200 bg-white p-6 shadow-2xs space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-xl bg-emerald-100 text-emerald-800">
+                <CheckCircle2 size={24} />
+              </span>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  {FLOW.handoverCompletedTitle}
+                </h2>
+                <p className="text-xs text-slate-500">{FLOW.handoverSuccess}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl bg-slate-50 p-4 border border-slate-100 text-xs">
+              <div>
+                <span className="text-slate-400 uppercase font-semibold block text-[10px]">
+                  {FLOW.customer}
+                </span>
+                <strong className="text-slate-800 text-sm mt-0.5 block">
+                  {result.booking.contactName}
+                </strong>
+              </div>
+              <div>
+                <span className="text-slate-400 uppercase font-semibold block text-[10px]">
+                  {FLOW.phone}
+                </span>
+                <span className="text-slate-700 text-sm mt-0.5 block">
+                  {result.booking.contactPhone}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 uppercase font-semibold block text-[10px]">
+                  {FLOW.assigned}
+                </span>
+                <strong className="text-emerald-900 font-mono text-sm mt-0.5 block">
+                  {result.assignedUnit?.physicalUnitCode ?? "—"}
+                </strong>
+              </div>
+              <div>
+                <span className="text-slate-400 uppercase font-semibold block text-[10px]">
+                  {FLOW.period}
+                </span>
+                <span className="text-slate-700 text-sm mt-0.5 block">
+                  {FLOW.months(result.booking.requestedMonths)}
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button
+                onClick={() => router.push(returnTo)}
+                className="h-9 px-4 text-xs font-semibold"
+              >
+                {FLOW.back}
+              </Button>
+            </div>
+          </Card>
         ) : (
           <Card className="border-slate-200 bg-white p-8 text-center shadow-2xs">
             <ClipboardCheck className="mx-auto mb-3 text-primary" size={36} />
