@@ -29,7 +29,7 @@ export const F5 = {
   inventory: "Quản lý ô kho",
   tasks: "Công việc cơ sở",
   staffDirectory: "Nhân viên cơ sở",
-  administration: "Quản lý cơ sở và loại kho",
+  administration: "Quản lý cơ sở",
   memberships: "Phân công nhân sự",
   description: "Quản lý dữ liệu vận hành tại cơ sở được phân công.",
   facility: "Cơ sở",

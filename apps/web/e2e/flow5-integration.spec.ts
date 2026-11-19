@@ -167,7 +167,7 @@ test("Operations manages facilities, types, offerings and membership with revoke
   await page.getByRole("dialog").getByLabel("Tên", { exact: true }).fill("Cơ sở đã sửa");
   await page.getByRole("dialog").getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
   await expect(page.getByRole("heading", { name: "FAC-WEB · Cơ sở đã sửa" })).toBeVisible();
-  await page.getByRole("button", { name: "Danh mục loại kho", exact: true }).click();
+  await page.goto("/operations/pricing");
   await page.getByRole("button", { name: "Thêm loại kho", exact: true }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByLabel("Mã", { exact: true }).fill("TYPE-WEB");
