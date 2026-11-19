@@ -1,4 +1,4 @@
-import type { User } from "@metastorage/contracts";
+import type { CreateUserInput, User } from "@metastorage/contracts";
 import type { UserRole } from "@metastorage/database/schema/user-enums";
 import type { ReactNode } from "react";
 
@@ -18,6 +18,11 @@ export interface AdminUserDetailProps {
 }
 
 export type AdminManagedUser = User & { role: UserRole; status: AdminAccountStatus };
+
+export interface AdminUserCreatorProps {
+  readonly onClose: () => void;
+  readonly onSave: (input: CreateUserInput) => Promise<void>;
+}
 
 export interface AdminUserEditorProps {
   readonly user: AdminManagedUser;

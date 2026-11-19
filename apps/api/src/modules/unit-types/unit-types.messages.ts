@@ -19,4 +19,5 @@ export const UNIT_TYPE_MESSAGES = {
   unitTypeUpdated: "Đã cập nhật thông tin loại kho.",
   facilityUnitTypesSummary: "Quản lý loại kho được cung cấp tại cơ sở",
   facilityUnitTypeUnavailable: "Không tìm thấy liên kết loại kho tại cơ sở.",
+  activeRentalsExist: "Không thể ngừng cung cấp loại kho đang có hợp đồng thuê hoạt động.",
 } as const;

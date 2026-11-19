@@ -63,14 +63,17 @@ export function AdminUserDetail({ userId, onClose, onEdit }: Readonly<AdminUserD
             <Button variant="outline" onClick={onClose}>
               {M.cancel}
             </Button>
-            {query.data.role && query.data.status && query.data.role !== "SYSTEM_ADMIN" && (
-              <Button
-                icon={<Pencil size={17} aria-hidden="true" />}
-                onClick={() => onEdit(query.data)}
-              >
-                {M.edit}
-              </Button>
-            )}
+            {query.data.role &&
+              query.data.status &&
+              query.data.role !== "SYSTEM_ADMIN" &&
+              query.data.role !== "CUSTOMER" && (
+                <Button
+                  icon={<Pencil size={17} aria-hidden="true" />}
+                  onClick={() => onEdit(query.data)}
+                >
+                  {M.edit}
+                </Button>
+              )}
           </div>
         </>
       )}

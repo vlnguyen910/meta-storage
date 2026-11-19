@@ -28,6 +28,7 @@ import type {
   CreateAppointmentInput,
   CreateInspectionInput,
   CreateReservationDraftInput,
+  CreateUserInput,
   CustomerAvailability,
   CustomerAvailabilityQuery,
   CustomerRegistrationStats,
@@ -271,6 +272,8 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     users: {
+      create: (input: CreateUserInput) =>
+        http.post<ApiEnvelope<User>>("/users", input).then(unwrap),
       list: (params: Partial<UserListQuery> = { limit: 100 }) =>
         http.get<ApiEnvelope<User[]>>("/users", { params }).then(unwrap),
       get: (userId: string) => http.get<ApiEnvelope<User>>(`/users/${userId}`).then(unwrap),
