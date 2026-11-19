@@ -138,7 +138,7 @@ export class AppointmentsRepository {
           name: unitTypes.name,
           sizeLabel: unitTypes.sizeLabel,
         },
-        handoverStage: sql<string>`case when ${appointments.status} = 'COMPLETED' then 'HANDED_OVER' when exists(select 1 from ${inspections} i join ${facilityTasks} t on t.id = i.task_id where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status <> 'CANCELLED' and i.status = 'PASSED') then 'READY_HANDOVER' when exists(select 1 from ${facilityTasks} t where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status = 'IN_PROGRESS') then 'INSPECTING' else 'WAITING_CUSTOMER' end`,
+        handoverStage: sql<string>`case when ${appointments.status} = 'COMPLETED' then 'HANDED_OVER' when exists(select 1 from ${inspections} i join ${facilityTasks} t on t.id = i.task_id where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status <> 'CANCELLED' and i.status = 'PASSED' and (${unitAssignments.physicalUnitId} is null or i.storage_unit_id = ${unitAssignments.physicalUnitId})) then 'READY_HANDOVER' when exists(select 1 from ${facilityTasks} t where t.reference_type = 'APPOINTMENT' and t.reference_id = ${appointments.id} and t.status = 'IN_PROGRESS') then 'INSPECTING' else 'WAITING_CUSTOMER' end`,
         paidAt: sql<Date | null>`(select ${payments.paidAt} from ${payments} where ${payments.reservationId} = ${appointments.reservationId} and ${payments.paidAt} is not null order by ${payments.paidAt} desc limit 1)`,
         paymentStatus: sql<
           string | null

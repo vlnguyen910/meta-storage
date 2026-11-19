@@ -47,7 +47,12 @@ export class FacilityTasksService {
     private readonly notifications?: NotificationsService,
   ) {}
 
-  async assignAppointment(tx: TaskTransaction, appointment: AppointmentRecord, managerId: string) {
+  async assignAppointment(
+    tx: TaskTransaction,
+    appointment: AppointmentRecord,
+    managerId: string,
+    options?: { resetInProgress?: boolean },
+  ) {
     if (!appointment.assignedStaffId) throw new BadRequestError(m.staffUnavailable);
     await this.assignments.requireActiveAssignments(tx, appointment.facilityId, [
       { userId: managerId, role: UserRole.FACILITY_MANAGER },
@@ -55,16 +60,26 @@ export class FacilityTasksService {
     ]);
     const [task] = await this.repository.findActiveAppointmentTask(tx, appointment.id);
     if (task) {
-      if (task.assignedStaffId === appointment.assignedStaffId) return;
-      if (task.status === FacilityTaskStatus.IN_PROGRESS) throw new ConflictError(m.taskNotReady);
-      await this.repository.reassignTask(
-        tx,
-        task.id,
-        appointment.assignedStaffId,
-        managerId,
-        new Date(),
-      );
-      return;
+      const shouldReset =
+        options?.resetInProgress &&
+        (task.status === FacilityTaskStatus.IN_PROGRESS ||
+          (await this.repository.hasTaskInspection(tx, task.id)));
+      if (shouldReset) {
+        await this.repository.setWorkflowStatus(tx, task.id, FacilityTaskStatus.CANCELLED, {
+          updatedAt: new Date(),
+        });
+      } else {
+        if (task.assignedStaffId === appointment.assignedStaffId) return;
+        if (task.status === FacilityTaskStatus.IN_PROGRESS) throw new ConflictError(m.taskNotReady);
+        await this.repository.reassignTask(
+          tx,
+          task.id,
+          appointment.assignedStaffId,
+          managerId,
+          new Date(),
+        );
+        return;
+      }
     }
     await this.repository.createAppointmentTask(tx, {
       facilityId: appointment.facilityId,

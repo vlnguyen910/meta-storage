@@ -49,6 +49,20 @@ export function useWorkRealtime(userId?: string, role?: string) {
         } catch {
           return;
         }
+        const event = value as { type?: string; recipientId?: string } | null;
+        if (
+          role === "FACILITY_STAFF" &&
+          event?.type === "STAFF_TASK_ASSIGNED" &&
+          event.recipientId === userId
+        ) {
+          if (!timer) {
+            timer = setTimeout(() => {
+              timer = undefined;
+              refresh();
+            }, 150);
+          }
+          return;
+        }
         const parsed = WorkUpdateNotificationSchema.safeParse(value);
         if (!parsed.success || parsed.data.recipientId !== userId || timer) return;
         if (

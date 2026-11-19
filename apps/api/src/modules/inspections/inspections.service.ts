@@ -137,7 +137,8 @@ export class InspectionsService {
     const appointments = this.appointments;
     if (!appointments) throw new ConflictError(m.taskNotAvailable);
     const [existing] = await this.repository.findByTask(input.taskId);
-    if (existing) return this.get(existing.id, actor);
+    if (existing && (!input.storageUnitId || existing.storageUnitId === input.storageUnitId))
+      return this.get(existing.id, actor);
     const record = await this.repository.transaction(async (tx) => {
       const { appointment, reservation, rental } = await appointments.requireInspectionContext(
         tx,
@@ -161,7 +162,8 @@ export class InspectionsService {
       )
         throw new ConflictError(m.taskNotAvailable);
       const [existing] = await this.repository.findByTask(task.id, tx);
-      if (existing) return existing;
+      if (existing && (!input.storageUnitId || existing.storageUnitId === input.storageUnitId))
+        return existing;
       if (
         appointment.appointmentType === AppointmentType.CHECK_OUT &&
         rental?.rental.status === "ACTIVE"
@@ -270,6 +272,9 @@ export class InspectionsService {
         throw new ConflictError(m.taskNotAvailable);
       const now = new Date();
       if (now >= reservation.rentalEndAt) throw new ConflictError(m.handoverNotReady);
+      const assignment = await this.storageUnits.findReservationAssignment(tx, reservation.id);
+      if (!assignment || assignment.physicalUnitId !== inspection.storageUnitId)
+        throw new ConflictError(m.handoverNotReady);
       await this.storageUnits.requireHandoverUnit(tx, {
         unitId: inspection.storageUnitId,
         taskId: task.id,

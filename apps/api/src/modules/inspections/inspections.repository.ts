@@ -54,7 +54,11 @@ export class InspectionsRepository {
           eq(facilityTasks.referenceType, FacilityTaskReferenceType.APPOINTMENT),
         ),
       )
-      .orderBy(desc(inspections.inspectedAt), desc(inspections.id));
+      .orderBy(
+        sql`(${facilityTasks.status} <> 'CANCELLED') desc`,
+        desc(inspections.inspectedAt),
+        desc(inspections.id),
+      );
   }
 
   async findTaskContext(taskId: string, executor: Database | TaskTransaction = this.db) {

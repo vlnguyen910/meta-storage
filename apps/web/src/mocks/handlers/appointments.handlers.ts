@@ -177,6 +177,12 @@ export function registerAppointmentHandlers(mock: MockAdapter): void {
     if (body.physicalUnitId) {
       const unit = db.units.find((u) => u.id === body.physicalUnitId);
       if (unit) {
+        const previousUnitId = appointment.assignedUnit?.physicalUnitId;
+        if (previousUnitId && previousUnitId !== unit.id) {
+          const oldUnit = db.units.find((u) => u.id === previousUnitId);
+          if (oldUnit) oldUnit.status = "MAINTENANCE" as typeof oldUnit.status;
+        }
+        unit.status = "RESERVED" as typeof unit.status;
         const assignment: PhysicalUnitAssignment = {
           id: crypto.randomUUID(),
           bookingId: appointment.reservationId ?? appointment.id,
