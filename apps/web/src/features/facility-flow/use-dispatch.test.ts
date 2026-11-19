@@ -6,7 +6,9 @@ import type {
 import { expect, it } from "vitest";
 import {
   appointmentItem,
+  isCancelledOrNoShowDispatchItem,
   isCompletedDispatchItem,
+  isInactiveDispatchItem,
   readiness,
   supportTicketDispatchItem,
 } from "./use-dispatch";
@@ -155,6 +157,60 @@ it("correctly identifies completed dispatch items across check-in, check-out, an
     scheduledDate: "2026-11-19",
   } as unknown as AppointmentRecordDto);
   expect(isCompletedDispatchItem(activeSupport)).toBe(false);
+});
+
+it("correctly identifies cancelled and no-show dispatch items", () => {
+  const cancelledCheckIn = appointmentItem({
+    id: "app-cancelled",
+    appointmentType: "CHECK_IN",
+    status: "CANCELLED",
+    customerId: "cust-1",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(cancelledCheckIn.status).toBe("CANCELLED");
+  expect(isCancelledOrNoShowDispatchItem(cancelledCheckIn)).toBe(true);
+  expect(isCompletedDispatchItem(cancelledCheckIn)).toBe(false);
+  expect(isInactiveDispatchItem(cancelledCheckIn)).toBe(true);
+
+  const noShowCheckIn = appointmentItem({
+    id: "app-noshow",
+    appointmentType: "CHECK_IN",
+    status: "NO_SHOW",
+    customerId: "cust-2",
+    facilityId: "fac-1",
+    scheduledDate: "2026-11-19",
+  } as unknown as AppointmentRecordDto);
+  expect(noShowCheckIn.status).toBe("NO_SHOW");
+  expect(isCancelledOrNoShowDispatchItem(noShowCheckIn)).toBe(true);
+  expect(isCompletedDispatchItem(noShowCheckIn)).toBe(false);
+  expect(isInactiveDispatchItem(noShowCheckIn)).toBe(true);
+
+  const cancelledSupport = supportTicketDispatchItem(
+    {
+      id: "ticket-canc",
+      bookingId: null,
+      reservationId: null,
+      facilityId: "fac-1",
+      rentalId: null,
+      storageUnitId: null,
+      paymentId: null,
+      category: "GENERAL",
+      subject: "Yêu cầu đã hủy",
+      description: "Hủy yêu cầu",
+      status: "CANCELLED",
+      priority: "NORMAL",
+      createdAt: "2026-11-19T08:00:00.000Z",
+      actionDueAt: "2026-11-19T18:00:00.000Z",
+      customer: { name: "User", email: "u@test.com", phone: null },
+      unitCode: null,
+      bookingCode: null,
+    } as unknown as FacilitySupportTicket,
+    null,
+  );
+  expect(isCancelledOrNoShowDispatchItem(cancelledSupport)).toBe(true);
+  expect(isCompletedDispatchItem(cancelledSupport)).toBe(false);
+  expect(isInactiveDispatchItem(cancelledSupport)).toBe(true);
 });
 
 it("maps support tickets to dispatch items and handles assignment status", () => {
