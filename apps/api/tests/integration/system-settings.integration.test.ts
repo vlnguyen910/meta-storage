@@ -142,7 +142,12 @@ describe.skipIf(!localUrl)("unified settings using existing local PostgreSQL", (
         .json()
         .data.map((r: { key: string }) => r.key)
         .sort(),
-    ).toEqual(["ABANDONED_REVIEW_DAYS", "EXPIRY_REMINDER_DAYS"]);
+    ).toEqual([
+      "ABANDONED_REVIEW_DAYS",
+      "CHECK_IN_MAX_PHOTOS",
+      "CLOUDINARY_MAX_UPLOAD_MB",
+      "EXPIRY_REMINDER_DAYS",
+    ]);
     expect(
       (await request("bom", "GET", "/system-settings"))
         .json()
