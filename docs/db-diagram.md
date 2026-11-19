@@ -15,7 +15,7 @@ keeping IDs, financial facts, rental/inspection history and assigned tasks.
 | --- | --- |
 | `reservations` | Customer/facility/unit type, requested months, rental period, integer price snapshots and lifecycle. Draft creation checks active offering, schedule, pricing and available capacity. Includes VAT rate/amount snapshots; total = rental fee + VAT + deposit. Price snapshots must fit PostgreSQL INTEGER. |
 | `appointments` | CHECK_IN references a paid reservation; CHECK_OUT references an active customer rental; SUPPORT references an owned support ticket. Facility/customer scope is derived from that context. Date and slot must be future and within operating hours. One active appointment per context is enforced by service parent locks. The check-in unique index applies to SCHEDULED/CONFIRMED records so cancelled history does not prevent rebooking. One confirmed return per facility/date/slot remains enforced by a partial unique index. |
-| `payments` | CHARGE retains provider fields. DEPOSIT_REFUND links to a rental and source charge; assigned Staff records it as REFUNDED when completing return settlement. DEBT_COLLECTION records an external receipt linked to a Debt. |
+| `payments` | CHARGE retains provider fields. DEPOSIT_REFUND links to a rental and source charge; assigned Staff records it as REFUNDED when completing return settlement. DEBT_COLLECTION records a Debt receipt: an external receipt (SUCCEEDED) or a SePay QR attempt (PENDING, then SUCCEEDED or FAILED; at most one PENDING per Debt). |
 | `return_settlements` | One immutable deposit/deduction snapshot per returned Rental and inspection, with source charge, currency, Staff and server timestamp. |
 | `debts` | Created only for deductions exceeding the deposit. Tracks original amount, paid amount and UNPAID/PARTIALLY_PAID/PAID independently of Rental closure. |
 | `policy_violation_fee` | Stores BOM catalog rows (null reference, versioned and soft-disabled) and applied fee snapshots (INSPECTION reference, code/name/VND amount/version/note). Applied rows do not change when the catalog changes. |
@@ -748,7 +748,7 @@ erDiagram
     uuid id PK
     payment_type type "CHARGE, DEPOSIT_REFUND or DEBT_COLLECTION"
     uuid debt_id FK "nullable; debt receipt"
-    payment_method method "nullable; CASH or BANK_TRANSFER"
+    payment_method method "nullable; CASH or BANK_TRANSFER; NULL for SePay"
     varchar reference "nullable; external receipt reference"
     uuid recorded_by FK "nullable; Staff recording a receipt"
     uuid booking_id FK "nullable for rental-charge payments"
@@ -756,7 +756,7 @@ erDiagram
     uuid rental_id FK "nullable; return refund"
     uuid renewal_id FK "nullable; renewal charge"
     uuid source_payment_id FK "nullable; original charge"
-    varchar provider "nullable for deposit refund"
+    varchar provider "nullable for deposit refund and manual debt receipt; sepay for charges and debt QR"
     varchar provider_payment_id "nullable"
     varchar payment_code UK "nullable for refund"
     varchar hold_token_hash "nullable for refund"
@@ -765,7 +765,7 @@ erDiagram
     varchar currency
     payment_status status
     timestamptz paid_at
-    timestamptz expires_at "nullable payment quote expiry"
+    timestamptz expires_at "nullable payment quote expiry; required for debt SePay attempts"
     payment_refund_reason_code refund_reason "nullable"
     numeric refund_amount "nullable; legacy refund falls back to total_amount"
     numeric deposit_forfeited_amount "NOT NULL DEFAULT 0"
@@ -1030,6 +1030,7 @@ facility membership. No new ticket/message table is introduced.
 - Rental detail for Customer and FM includes `settlement` (null for unsettled or historical returns): deposit, deductions, refund entitlement, debt created, inspection, currency, Staff and server timestamp.
 - GET `/api/debts` supports rentalId, status and existing limit/offset pagination. Customer sees only owned debts; Staff and FM see only actively assigned facilities. GET `/api/debts/:id` adds receipt history. Scope and actor come from the authenticated session/assignments.
 - POST `/api/debts/:id/payments` is Staff-only and accepts a positive integer VND amount, method CASH/BANK_TRANSFER, transfer reference when applicable, and idempotencyKey. It records money already received externally. Active assignment and Debt row locks protect collection, prevent overpayment, and serialize concurrent receipts. Replaying the same payload/key reuses the receipt; conflicting reuse is rejected.
+- POST `/api/debts/:id/payments/sepay` lets an actively assigned Staff start a SePay QR payment for the full remaining balance; the Customer pays on SePay's hosted checkout. It inserts a PENDING DEBT_COLLECTION payment (10-minute expiry) and returns the checkout session; repeating the call reuses the live attempt and refreshes its expiry. The SePay webhook or reconciliation sweep (and GET `/api/debts/:id`) mark it SUCCEEDED and the Debt PAID atomically; amounts that do not settle the Debt are ignored.
 - A receipt inserts a SUCCEEDED DEBT_COLLECTION payment and updates Debt paid_amount/status atomically. No Debt or Payment is created for a zero balance. Source CHARGE amounts and status remain unchanged. Financial reports count debt receipts as cash received and cap applied deposit deductions at the deposit; the excess remains a receivable until collected.
 - BOM/System Admin manual refund endpoints remain for cancellation/no-show/provider exceptions and historical pending refunds; new deposit-return refunds are confirmed by assigned Staff during completion. Historical records retain their existing reconciliation path and are not automatically marked paid or migrated to new settlements.
 
