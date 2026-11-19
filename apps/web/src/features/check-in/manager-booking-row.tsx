@@ -16,6 +16,7 @@ import { useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import { OperationalBadge } from "@/components/ui/operational";
 import { FLOW } from "@/features/facility-flow/flow.messages";
+import { isCompletedDispatchItem } from "@/features/facility-flow/use-dispatch";
 import { cn } from "@/lib/utils";
 import { formatBookingAmount, formatBookingDateTime } from "./booking-display";
 import { MANAGER_BOOKING_ROW as M } from "./manager-booking-row.messages";
@@ -34,6 +35,7 @@ export function ManagerBookingRow({
   onViewDetails,
 }: ManagerBookingRowProps) {
   const [copyFeedback, setCopyFeedback] = useState("");
+  const isCompleted = isCompletedDispatchItem(b);
   const returnFlow = b.appointmentType === "CHECK_OUT";
   const supportFlow = b.appointmentType === "SUPPORT";
   const checkInFlow = b.appointmentType === "CHECK_IN" || !b.appointmentType;
@@ -264,19 +266,34 @@ export function ManagerBookingRow({
               {FLOW.staffAssign}
             </button>
           </span>
-          <Link
-            href={state === "NEEDS_UNIT" ? `${url}&view=assign&bookingId=${b.id}` : url}
-            className={cn(
-              actionClass,
-              "inline-flex min-w-32 items-center justify-center gap-1.5 border transition-colors",
-              state === "NEEDS_UNIT"
-                ? "border-primary bg-primary text-white hover:bg-primary-dark"
-                : "border-slate-300 bg-surface text-primary hover:border-primary hover:bg-primary-soft",
-            )}
-          >
-            {state === "NEEDS_UNIT" ? FLOW.assign : FLOW.monitor}
-            <ArrowRight size={13} aria-hidden="true" />
-          </Link>
+          {isCompleted ? (
+            <button
+              type="button"
+              onClick={onViewDetails}
+              className={cn(
+                actionClass,
+                "inline-flex min-w-32 items-center justify-center gap-1.5 border transition-colors cursor-pointer",
+                "border-slate-300 bg-surface text-primary hover:border-primary hover:bg-primary-soft",
+              )}
+            >
+              {FLOW.monitor}
+              <ArrowRight size={13} aria-hidden="true" />
+            </button>
+          ) : (
+            <Link
+              href={state === "NEEDS_UNIT" ? `${url}&view=assign&bookingId=${b.id}` : url}
+              className={cn(
+                actionClass,
+                "inline-flex min-w-32 items-center justify-center gap-1.5 border transition-colors",
+                state === "NEEDS_UNIT"
+                  ? "border-primary bg-primary text-white hover:bg-primary-dark"
+                  : "border-slate-300 bg-surface text-primary hover:border-primary hover:bg-primary-soft",
+              )}
+            >
+              {state === "NEEDS_UNIT" ? FLOW.assign : FLOW.monitor}
+              <ArrowRight size={13} aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </div>
     </article>

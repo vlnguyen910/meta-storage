@@ -5,6 +5,7 @@ import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarClock,
+  Camera,
   FileCheck,
   Mail,
   Phone,
@@ -36,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { InspectionPhotoCard } from "@/features/facility-flow/inspection-screen";
 import { DebtPanel, SettlementSummary } from "@/features/rentals/debt-panel";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -544,6 +546,19 @@ function Detail({ facilityId, id }: { facilityId: string; id: string }) {
                               {fee.note ? ` (${fee.note})` : ""}
                             </p>
                           ))}
+                        </div>
+                      )}
+                      {record.evidence && record.evidence.length > 0 && (
+                        <div className="mt-3 border-t border-slate-200/80 pt-2.5">
+                          <p className="flex items-center gap-1.5 font-semibold text-slate-700 mb-2">
+                            <Camera size={13} className="text-primary" />
+                            <span>Ảnh kiểm tra trả kho ({record.evidence.length}):</span>
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {record.evidence.map((photo) => (
+                              <InspectionPhotoCard key={photo.id} photo={photo} />
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
