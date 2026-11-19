@@ -143,7 +143,8 @@ export function registerInspectionHandlers(mock: MockAdapter): void {
     }
     if (action === "upload") {
       const parsed = InspectionPhotoInputSchema.safeParse(parseBody(config.data));
-      if (!parsed.success || inspection.photos.length >= 8) return [400, errorBody(400, M.invalid)];
+      if (!parsed.success || inspection.photos.length >= 30)
+        return [400, errorBody(400, M.invalid)];
       let byteSize: number;
       try {
         byteSize = atob(parsed.data.dataBase64).length;
