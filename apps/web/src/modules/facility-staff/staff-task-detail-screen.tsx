@@ -53,6 +53,7 @@ import {
   useFacilityTaskDetail,
   useUpdateTask,
 } from "@/features/facility-management/hooks";
+import { ReturnDebtPanel } from "@/features/rentals/debt-panel";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { readFileBase64 } from "@/lib/read-file-base64";
@@ -198,7 +199,10 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
       ]);
       if (updated.status === "PASSED") {
         showToast(M.returnFinalized, "success");
-        router.push("/staff/tasks");
+        const context = updated.returnContext;
+        const fees = context?.fees.reduce((sum, fee) => sum + fee.amount, 0) ?? 0;
+        // With fees above the deposit, stay so the staff member can collect them right away.
+        if (fees <= (context?.depositAmount ?? 0)) router.push("/staff/tasks");
       } else {
         showToast(M.returnSaved, "success");
       }
@@ -945,6 +949,9 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                   <CheckCircle2 size={18} />
                   {M.returnFinalized}
                 </p>
+              )}
+              {record.status === "PASSED" && record.rentalId && (
+                <ReturnDebtPanel rentalId={record.rentalId} />
               )}
               {(!ReturnChecklistCompletionSchema.safeParse(results).success || !condition) &&
                 record.status !== "PASSED" && (
