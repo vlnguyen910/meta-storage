@@ -1,9 +1,14 @@
 "use client";
 
-import { type FacilitySupportTicket, SUPPORT_CATEGORIES } from "@metastorage/contracts";
+import {
+  type FacilitySupportTicket,
+  FacilityTaskReferenceType,
+  FacilityTaskType,
+  SUPPORT_CATEGORIES,
+} from "@metastorage/contracts";
 import { formatReference } from "@metastorage/shared";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ChevronRight, RefreshCw, Search, UserRound, Warehouse } from "lucide-react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight, RefreshCw, Search, UserCheck, UserRound, Warehouse } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
+import { bookingKeys } from "@/features/check-in/booking.keys";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { ManagerTabFrame } from "./manager-tab-frame";
@@ -330,14 +337,70 @@ function SupportDetail({
         ) : detail.isError ? (
           <ErrorState message={M.loadingError} onRetry={() => void detail.refetch()} />
         ) : (
-          <TicketContent ticket={detail.data} />
+          <TicketContent ticket={detail.data} facilityId={facilityId} />
         )}
       </div>
     </DialogContent>
   );
 }
 
-function TicketContent({ ticket }: { ticket: FacilitySupportTicket }) {
+function TicketContent({
+  ticket,
+  facilityId,
+}: {
+  ticket: FacilitySupportTicket;
+  facilityId: string;
+}) {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const staff = useQuery({
+    queryKey: ["facility-staff", facilityId],
+    queryFn: () => api.facilities.getStaff(facilityId),
+    enabled: Boolean(facilityId),
+  });
+  const tasks = useQuery({
+    queryKey: ["facility-tasks", facilityId],
+    queryFn: () => api.flow5.tasks.listFacility({ limit: 100, offset: 0 }),
+    enabled: Boolean(facilityId),
+  });
+  const linkedTask =
+    tasks.data?.items.find(
+      (t) =>
+        t.referenceType === "SUPPORT_TICKET" &&
+        t.referenceId === ticket.id &&
+        t.status !== "CANCELLED",
+    ) ?? null;
+  const [assigning, setAssigning] = useState(false);
+  const [selectedStaffId, setSelectedStaffId] = useState(linkedTask?.assignedStaffId ?? "");
+  const activeStaff = staff.data?.filter((m) => m.isActive) ?? [];
+  const isClosed = ticket.status === "CLOSED" || ticket.closedAt !== null;
+
+  const assignMutation = useMutation({
+    mutationFn: async () => {
+      if (linkedTask) {
+        return await api.flow5.tasks.update(linkedTask.id, {
+          assignedStaffId: selectedStaffId,
+        });
+      }
+      return await api.flow5.tasks.create({
+        facilityId,
+        assignedStaffId: selectedStaffId,
+        type: FacilityTaskType.HANDLE_SUPPORT,
+        referenceType: FacilityTaskReferenceType.SUPPORT_TICKET,
+        referenceId: ticket.id,
+        description: ticket.subject,
+      });
+    },
+    onSuccess: () => {
+      showToast(M.assignSuccess, "success");
+      setAssigning(false);
+      void queryClient.invalidateQueries({ queryKey: ["facility-tasks", facilityId] });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["facility-flow"] });
+      void queryClient.invalidateQueries({ queryKey: ["support-detail"] });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -347,6 +410,80 @@ function TicketContent({ ticket }: { ticket: FacilitySupportTicket }) {
           {M.supportCreatedAt}: <time dateTime={ticket.createdAt}>{sentAt(ticket.createdAt)}</time>
         </p>
       </div>
+
+      <section className="rounded-xl border border-line bg-slate-50/70 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h4 className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary">
+              <UserCheck size={15} aria-hidden="true" />
+              {M.assignedStaff}
+            </h4>
+            <p className="text-sm font-semibold text-ink">
+              {linkedTask?.assignedStaffName ?? M.unassignedStaff}
+            </p>
+            {linkedTask?.assignedAt && (
+              <p className="mt-0.5 text-xs text-secondary">{sentAt(linkedTask.assignedAt)}</p>
+            )}
+          </div>
+          {!isClosed && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSelectedStaffId(linkedTask?.assignedStaffId ?? activeStaff[0]?.id ?? "");
+                setAssigning((prev) => !prev);
+              }}
+              className="min-h-9 px-3 py-1.5 text-xs font-semibold"
+            >
+              {linkedTask ? M.reassignStaff : M.assignStaff}
+            </Button>
+          )}
+        </div>
+
+        {assigning && (
+          <div className="mt-4 space-y-3 border-t border-line pt-3">
+            <label
+              htmlFor="select-staff-assign"
+              className="block text-xs font-semibold text-secondary"
+            >
+              {M.selectStaffMember}
+            </label>
+            <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
+              <SelectTrigger id="select-staff-assign" className="w-full bg-white">
+                <SelectValue placeholder={M.selectStaffMember} />
+              </SelectTrigger>
+              <SelectContent>
+                {activeStaff.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name} ({member.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setAssigning(false)}
+                disabled={assignMutation.isPending}
+                className="min-h-9 px-3 py-1.5 text-xs"
+              >
+                {M.cancel}
+              </Button>
+              <Button
+                type="button"
+                disabled={!selectedStaffId || assignMutation.isPending}
+                loading={assignMutation.isPending}
+                onClick={() => assignMutation.mutate()}
+                className="min-h-9 px-3 py-1.5 text-xs font-semibold"
+              >
+                {M.saveAssign}
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="rounded-xl border border-line bg-primary-soft/40 p-4">
         <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary">
           <UserRound size={15} aria-hidden="true" />

@@ -1,5 +1,10 @@
 "use client";
-import type { AppointmentRecordDto, BookingListItem } from "@metastorage/contracts";
+import type {
+  AppointmentRecordDto,
+  BookingListItem,
+  FacilitySupportTicket,
+  FacilityTaskDetail,
+} from "@metastorage/contracts";
 import { APPOINTMENT_TYPES } from "@metastorage/database/schema/appointments";
 import { formatReference } from "@metastorage/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -78,6 +83,62 @@ export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
 export async function loadAppointmentItem(id: string) {
   return appointmentItem(await api.appointments.get(id));
 }
+export function supportTicketDispatchItem(
+  ticket: FacilitySupportTicket,
+  linkedTask?: FacilityTaskDetail | null,
+): DispatchItem {
+  const isCompleted =
+    ticket.status === "CLOSED" || ticket.closedAt !== null || linkedTask?.status === "COMPLETED";
+
+  const assignedStaff = linkedTask?.assignedStaffId
+    ? {
+        id: linkedTask.assignedStaffId,
+        name: linkedTask.assignedStaffName ?? FLOW.assignedStaff,
+      }
+    : null;
+
+  const status = isCompleted ? "COMPLETED" : assignedStaff ? "CONFIRMED" : "NEEDS_STAFF";
+
+  return {
+    id: ticket.id,
+    appointmentType: APPOINTMENT_TYPES.SUPPORT,
+    reservationId: ticket.reservationId ?? null,
+    rentalId: ticket.rentalId ?? null,
+    appointmentStatus: status,
+    bookingCode: formatReference(ticket.id, "YC"),
+    facilityId: ticket.facilityId,
+    facilityName: FLOW.noFacility,
+    unitTypeId: "",
+    unitTypeName: ticket.subject || "Hỗ trợ khách hàng",
+    unitTypeSizeLabel: "",
+    contactName: ticket.customer.name,
+    contactEmail: ticket.customer.email,
+    contactPhone: ticket.customer.phone ?? "",
+    checkInSlotStart: ticket.createdAt,
+    checkInSlotEnd: ticket.actionDueAt,
+    rentalEndAt: ticket.actionDueAt,
+    requestedMonths: 0,
+    totalAmount: 0,
+    status,
+    handoverStage: undefined,
+    paidAt: null,
+    paymentStatus: "SUCCEEDED",
+    assignedUnit: ticket.unitCode
+      ? {
+          id: ticket.storageUnitId ?? ticket.id,
+          physicalUnitId: ticket.storageUnitId ?? "",
+          physicalUnitCode: ticket.unitCode,
+          assignedBy: "",
+          assignedAt: ticket.createdAt,
+          endedAt: null,
+          reason: null,
+          status: "ACTIVE",
+        }
+      : null,
+    assignedStaff,
+    createdAt: ticket.createdAt,
+  };
+}
 export function readiness(b: DispatchItem): string {
   if (
     b.appointmentType === APPOINTMENT_TYPES.CHECK_OUT ||
@@ -116,7 +177,7 @@ export function useDispatch(
         : api.appointments.listFacility(facilityId, {
             ...(appointmentType === "ALL" ? {} : { appointmentType }),
           }));
-      return appointments
+      const appointmentItems = appointments
         .filter(
           (item) =>
             appointmentType !== "ALL" ||
@@ -125,6 +186,36 @@ export function useDispatch(
             item.appointmentType === APPOINTMENT_TYPES.SUPPORT,
         )
         .map(appointmentItem);
+
+      if (staff || (appointmentType !== "ALL" && appointmentType !== APPOINTMENT_TYPES.SUPPORT)) {
+        return appointmentItems;
+      }
+
+      try {
+        const [supportData, tasksData] = await Promise.all([
+          api.support.facilityList(facilityId, { limit: 100 }).catch(() => ({ items: [] })),
+          api.flow5.tasks.listFacility({ limit: 100, offset: 0 }).catch(() => ({ items: [] })),
+        ]);
+
+        const taskMap = new Map<string, FacilityTaskDetail>();
+        for (const t of tasksData.items) {
+          if (t.referenceType === "SUPPORT_TICKET" && t.status !== "CANCELLED") {
+            taskMap.set(t.referenceId, t);
+          }
+        }
+
+        const scheduledTicketIds = new Set(
+          appointments.map((a) => a.supportTicketId).filter(Boolean),
+        );
+
+        const supportItems = supportData.items
+          .filter((ticket) => !scheduledTicketIds.has(ticket.id))
+          .map((ticket) => supportTicketDispatchItem(ticket, taskMap.get(ticket.id)));
+
+        return [...appointmentItems, ...supportItems];
+      } catch {
+        return appointmentItems;
+      }
     },
     enabled: !!facilityId,
     refetchInterval: 30000,
