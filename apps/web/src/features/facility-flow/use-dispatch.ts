@@ -24,9 +24,22 @@ export type DispatchItem = Omit<BookingListItem, "assignedUnit" | "assignedStaff
   paymentStatus: string | null;
 };
 export type DispatchAppointmentType = APPOINTMENT_TYPES | "ALL";
-export type DispatchFilterTab = "ALL" | APPOINTMENT_TYPES | "COMPLETED";
+export type DispatchFilterTab = "ALL" | APPOINTMENT_TYPES | "COMPLETED" | "CANCELLED";
+
+export function isCancelledOrNoShowDispatchItem(b: DispatchItem): boolean {
+  const r = readiness(b);
+  return (
+    r === "CANCELLED" ||
+    r === "NO_SHOW" ||
+    b.status === "CANCELLED" ||
+    b.status === "NO_SHOW" ||
+    b.appointmentStatus === "CANCELLED" ||
+    b.appointmentStatus === "NO_SHOW"
+  );
+}
 
 export function isCompletedDispatchItem(b: DispatchItem): boolean {
+  if (isCancelledOrNoShowDispatchItem(b)) return false;
   const r = readiness(b);
   return (
     r === "CHECKED_IN" ||
@@ -35,6 +48,10 @@ export function isCompletedDispatchItem(b: DispatchItem): boolean {
     b.status === "COMPLETED" ||
     b.appointmentStatus === "COMPLETED"
   );
+}
+
+export function isInactiveDispatchItem(b: DispatchItem): boolean {
+  return isCompletedDispatchItem(b) || isCancelledOrNoShowDispatchItem(b);
 }
 export function appointmentItem(a: AppointmentRecordDto): DispatchItem {
   const r = a.reservation;
@@ -87,6 +104,8 @@ export function supportTicketDispatchItem(
   ticket: FacilitySupportTicket,
   linkedTask?: FacilityTaskDetail | null,
 ): DispatchItem {
+  const isCancelled =
+    linkedTask?.status === "CANCELLED" || (ticket.status as string) === "CANCELLED";
   const isCompleted =
     ticket.status === "CLOSED" || ticket.closedAt !== null || linkedTask?.status === "COMPLETED";
 
@@ -97,7 +116,13 @@ export function supportTicketDispatchItem(
       }
     : null;
 
-  const status = isCompleted ? "COMPLETED" : assignedStaff ? "CONFIRMED" : "NEEDS_STAFF";
+  const status = isCancelled
+    ? "CANCELLED"
+    : isCompleted
+      ? "COMPLETED"
+      : assignedStaff
+        ? "CONFIRMED"
+        : "NEEDS_STAFF";
 
   return {
     id: ticket.id,
@@ -230,9 +255,10 @@ export function useDispatch(
     if (typeFilter === "COMPLETED") {
       return isCompletedDispatchItem(b);
     }
-    return (
-      !isCompletedDispatchItem(b) && (typeFilter === "ALL" || b.appointmentType === typeFilter)
-    );
+    if (typeFilter === "CANCELLED") {
+      return isCancelledOrNoShowDispatchItem(b);
+    }
+    return !isInactiveDispatchItem(b) && (typeFilter === "ALL" || b.appointmentType === typeFilter);
   };
   const filtered = bookings.filter(
     (b) =>
@@ -252,10 +278,13 @@ export function useDispatch(
     if (type === "COMPLETED") {
       return bookings.filter(isCompletedDispatchItem).length;
     }
-    if (type === "ALL") {
-      return bookings.filter((b) => !isCompletedDispatchItem(b)).length;
+    if (type === "CANCELLED") {
+      return bookings.filter(isCancelledOrNoShowDispatchItem).length;
     }
-    return bookings.filter((b) => !isCompletedDispatchItem(b) && b.appointmentType === type).length;
+    if (type === "ALL") {
+      return bookings.filter((b) => !isInactiveDispatchItem(b)).length;
+    }
+    return bookings.filter((b) => !isInactiveDispatchItem(b) && b.appointmentType === type).length;
   };
   return {
     query,
