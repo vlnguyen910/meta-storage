@@ -6,7 +6,10 @@ import {
   eq,
   facilityUnitTypes,
   getTableColumns,
+  RentalStatus,
+  rentals,
   sql,
+  storageUnits,
   unitTypes,
 } from "@metastorage/database";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
@@ -80,6 +83,17 @@ export class FacilityUnitTypesRepository {
       if (id && !before) throw new NotFoundError(M.facilityUnitTypeUnavailable);
       if (before && "expectedVersion" in input && before.version !== input.expectedVersion)
         throw new ConflictError(M.stale);
+      if (before && "isActive" in input && input.isActive === false && before.isActive) {
+        const [activeRental] = await tx
+          .select({ id: rentals.id })
+          .from(rentals)
+          .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+          .where(
+            and(eq(storageUnits.unitTypeId, before.id), eq(rentals.status, RentalStatus.ACTIVE)),
+          )
+          .limit(1);
+        if (activeRental) throw new ConflictError(M.activeRentalsExist);
+      }
       const typeId = before?.unitTypeId ?? (input as CreateFacilityUnitType).unitTypeId;
       const [catalog] = await tx
         .select()

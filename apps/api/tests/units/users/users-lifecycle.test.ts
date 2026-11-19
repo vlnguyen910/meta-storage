@@ -92,4 +92,15 @@ describe("approved user lifecycle", () => {
     await reactivated.service.updateUser(id, { status: "ACTIVE" });
     expect(reactivated.calls).toEqual(["update"]);
   });
+
+  it("protects customer accounts from role modification while allowing lock/unlock", async () => {
+    const customer = fixture({ role: "CUSTOMER" });
+    await expect(customer.service.updateUser(id, { role: "FACILITY_STAFF" })).rejects.toMatchObject(
+      {
+        statusCode: 403,
+      },
+    );
+    const locked = await customer.service.updateUser(id, { status: "INACTIVE" });
+    expect(locked.status).toBe("INACTIVE");
+  });
 });

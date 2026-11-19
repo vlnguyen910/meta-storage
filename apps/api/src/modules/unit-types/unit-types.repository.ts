@@ -9,6 +9,9 @@ import {
   lt,
   ne,
   or,
+  RentalStatus,
+  rentals,
+  storageUnits,
   unitTypes,
 } from "@metastorage/database";
 import { ConflictError, NotFoundError } from "../../common/errors/app-error";
@@ -41,6 +44,16 @@ export class UnitTypesRepository {
       const [before] = await tx.select().from(unitTypes).where(eq(unitTypes.id, id)).for("update");
       if (!before) throw new NotFoundError(M.unitTypeNotFound);
       if (before.version !== input.expectedVersion) throw new ConflictError(M.stale);
+      if (input.isActive === false && before.isActive) {
+        const [activeRental] = await tx
+          .select({ id: rentals.id })
+          .from(rentals)
+          .innerJoin(storageUnits, eq(storageUnits.id, rentals.storageUnitId))
+          .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.id, storageUnits.unitTypeId))
+          .where(and(eq(facilityUnitTypes.unitTypeId, id), eq(rentals.status, RentalStatus.ACTIVE)))
+          .limit(1);
+        if (activeRental) throw new ConflictError(M.activeRentalsExist);
+      }
       const min = input.minMonthlyPrice ?? before.minMonthlyPrice;
       const max = input.maxMonthlyPrice ?? before.maxMonthlyPrice;
       if (min > max) throw new ConflictError(M.invalidBounds);

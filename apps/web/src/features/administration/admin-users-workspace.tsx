@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Search,
   UnlockKeyhole,
+  UserPlus,
   UsersRound,
 } from "lucide-react";
 import { useState } from "react";
@@ -37,6 +38,7 @@ import {
 import { isManagedUser, roleBadgeClassName, userInitials } from "./admin.helpers";
 import { ADMIN_ROLE_LABELS, ADMIN_MESSAGES as M } from "./admin.messages";
 import { adminCard } from "./admin-parts";
+import { AdminUserCreator } from "./admin-user-creator";
 import { AdminUserDetail } from "./admin-user-detail";
 import { AdminUserEditor } from "./admin-user-editor";
 import { AdminUserStatusConfirmation } from "./admin-user-status-confirmation";
@@ -91,13 +93,20 @@ export function AdminUsersWorkspace() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden min-h-0 gap-3.5">
-      <header className="shrink-0">
+      <header className="shrink-0 flex items-center justify-between gap-4">
         <div>
           <h1 className="m-0 font-['Space_Grotesk'] text-2xl font-bold tracking-tight text-ink sm:text-[28px]">
             {M.titles.users}
           </h1>
           <p className="mb-0 mt-0.5 text-xs text-muted">{M.descriptions.users}</p>
         </div>
+        <Button
+          onClick={() => workspace.setCreating(true)}
+          className="h-9 px-3.5 text-xs font-semibold gap-1.5 shrink-0"
+          icon={<UserPlus size={15} aria-hidden="true" />}
+        >
+          {M.createUser}
+        </Button>
       </header>
 
       <section aria-label={M.userMetrics} className="grid shrink-0 gap-3 md:grid-cols-3">
@@ -232,6 +241,8 @@ export function AdminUsersWorkspace() {
                 {workspace.visibleUsers.map((user) => {
                   const canManage =
                     isManagedUser(user) && user.role !== UserRole.SYSTEM_ADMINISTRATOR;
+                  const isCustomer = user.role === UserRole.STORAGE_CUSTOMER;
+                  const canEditUser = canManage && !isCustomer;
                   return (
                     <TableRow
                       key={user.id}
@@ -310,12 +321,13 @@ export function AdminUsersWorkspace() {
                               <Eye size={17} aria-hidden="true" className="mr-2 text-muted" />
                               {M.details}
                             </DropdownMenuItem>
-                            {canManage && (
+                            {canEditUser && (
                               <DropdownMenuItem
                                 onSelect={() => {
                                   if (
                                     isManagedUser(user) &&
-                                    user.role !== UserRole.SYSTEM_ADMINISTRATOR
+                                    user.role !== UserRole.SYSTEM_ADMINISTRATOR &&
+                                    !isCustomer
                                   )
                                     workspace.setEditor(user);
                                 }}
@@ -368,10 +380,21 @@ export function AdminUsersWorkspace() {
           userId={workspace.detailId}
           onClose={() => workspace.setDetailId(null)}
           onEdit={(user) => {
-            if (isManagedUser(user) && user.role !== UserRole.SYSTEM_ADMINISTRATOR)
+            if (
+              isManagedUser(user) &&
+              user.role !== UserRole.SYSTEM_ADMINISTRATOR &&
+              user.role !== UserRole.STORAGE_CUSTOMER
+            )
               workspace.setEditor(user);
             workspace.setDetailId(null);
           }}
+        />
+      )}
+
+      {workspace.creating && (
+        <AdminUserCreator
+          onClose={() => workspace.setCreating(false)}
+          onSave={workspace.createUser}
         />
       )}
 

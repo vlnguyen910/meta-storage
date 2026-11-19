@@ -11,4 +11,5 @@ export const USER_MESSAGES = {
   userNotFound: "User này không tồn tại",
   openWorkPreventsChange:
     "Hãy bàn giao hết công việc đang phụ trách trước khi khóa tài khoản hoặc đổi vai trò.",
+  customerRoleProtected: "Không thể thay đổi vai trò của tài khoản khách hàng.",
 } as const;

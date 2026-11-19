@@ -3,7 +3,7 @@ export const F5 = {
   maxPrice: "Giá tối đa (VND/tháng)",
   priceRange: "Khoảng giá BOM",
   localPrice: "Giá tại cơ sở (VND/tháng)",
-  invalidCatalogPrice: "Giá phải là số nguyên tối thiểu 1 VND.",
+  invalidCatalogPrice: "Giá trị phải lớn hơn 0.",
   invalidBounds: "Giá tối đa phải lớn hơn hoặc bằng giá tối thiểu.",
   invalidLocalPrice: "Giá thuê phải nằm trong khoảng giá BOM thiết lập.",
   addOffering: "Chọn loại kho cho cơ sở",
@@ -22,7 +22,7 @@ export const F5 = {
   deactivateConfirm: "Xác nhận ngừng cung cấp",
   typeStatusHint: (name: string, active: boolean) =>
     active
-      ? `Ngừng cung cấp loại kho “${name}” trên toàn hệ thống?`
+      ? `Ngừng cung cấp loại kho “${name}” trên toàn hệ thống? Thao tác chỉ có thể thực hiện khi không còn hợp đồng thuê nào đang hoạt động.`
       : `Kích hoạt lại loại kho “${name}” trên toàn hệ thống?`,
 
   title: "Vận hành cơ sở",

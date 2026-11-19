@@ -1,6 +1,10 @@
 "use client";
 
-import type { UpdateUserRoleWithoutCustomerInput, User } from "@metastorage/contracts";
+import type {
+  CreateUserInput,
+  UpdateUserRoleWithoutCustomerInput,
+  User,
+} from "@metastorage/contracts";
 import { UserRole, type UserStatus } from "@metastorage/database/schema/user-enums";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -32,6 +36,7 @@ export function useAdminUsersWorkspace() {
   const [page, setPage] = useState(1);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editor, setEditor] = useState<AdminManagedUser | null>(null);
+  const [creating, setCreating] = useState(false);
   const [statusConfirmation, setStatusConfirmation] = useState<AdminManagedUser | null>(null);
   const [notice, setNotice] = useState("");
   const invalidateUsers = () =>
@@ -39,6 +44,20 @@ export function useAdminUsersWorkspace() {
       queryClient.invalidateQueries({ queryKey }),
       queryClient.invalidateQueries({ queryKey: [...queryKey, "detail"] }),
     ]);
+  const createMutation = useMutation({
+    meta: { globalLoading: true },
+    mutationFn: (input: CreateUserInput) => api.users.create(input),
+    onSuccess: () => {
+      setNotice(M.createUserSuccess);
+      showToast(M.createUserSuccess, "success");
+      return invalidateUsers();
+    },
+    onError: (error) => {
+      const msg = adminApiError(error, M.createError);
+      setNotice(msg);
+      showToast(msg, "error");
+    },
+  });
   const updateMutation = useMutation({
     meta: { globalLoading: true },
     mutationFn: ({
@@ -94,6 +113,10 @@ export function useAdminUsersWorkspace() {
     setFilters(initialFilters);
     setPage(1);
   };
+  const createUser = async (input: CreateUserInput) => {
+    setNotice("");
+    await createMutation.mutateAsync(input);
+  };
   const saveUser = async (userId: string, role: UserRole) => {
     if (role === UserRole.SYSTEM_ADMINISTRATOR || role === UserRole.STORAGE_CUSTOMER)
       throw new Error(M.invalidRoleChange);
@@ -114,21 +137,25 @@ export function useAdminUsersWorkspace() {
   };
 
   return {
+    creating,
     currentPage,
     detailId,
     editor,
     filter,
     filters,
     isChangingStatus: statusMutation.isPending,
+    isCreating: createMutation.isPending,
     notice,
     pageSize,
     query,
     resetFilters,
     statusConfirmation,
+    createUser,
     saveUser,
     confirmStatusChange,
     requestStatusChange,
     setStatusConfirmation,
+    setCreating,
     setDetailId,
     setEditor,
     setPage,
