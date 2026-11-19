@@ -695,7 +695,10 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
                     )}
                     {(uploadEvidence.isError || removeEvidence.isError) && (
                       <p role="alert" className="text-sm text-danger">
-                        {M.returnPhotoSaveError}
+                        {managementError(
+                          uploadEvidence.error ?? removeEvidence.error,
+                          M.returnPhotoSaveError,
+                        )}
                       </p>
                     )}
                     {record.evidence.length ? (
@@ -893,7 +896,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
               )}
               {saveReturn.isError && (
                 <p role="alert" className="text-sm text-danger">
-                  {managementError(saveReturn.error)}
+                  {managementError(saveReturn.error, M.returnSaveError)}
                 </p>
               )}
               {policyNeedsReview && (
@@ -947,7 +950,7 @@ export function StaffTaskDetailScreen({ taskId }: { taskId: string }) {
           )}
           {startReturn.isError && (
             <p role="alert" className="text-sm text-danger">
-              {M.returnStartError}
+              {managementError(startReturn.error, M.returnStartError)}
             </p>
           )}
         </section>
