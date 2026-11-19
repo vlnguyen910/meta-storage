@@ -303,13 +303,6 @@ function FacilityShellContent({
             </div>
             <div className="flex items-center gap-3">
               {!isMockMode && <LifecycleInbox key={user?.id} />}
-              <span className="grid size-8 place-items-center rounded-full bg-[#003b2f] text-white">
-                <User size={18} />
-              </span>
-              <div className="hidden lg:block">
-                <strong className="block text-[11px]">{user?.name}</strong>
-                <span className="text-[11px] text-[#404945]">{role}</span>
-              </div>
             </div>
           </header>
         ) : (
