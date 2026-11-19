@@ -263,6 +263,7 @@ export const ADMIN_MESSAGES = {
     },
     units: {
       MEGABYTES: "MB",
+      PHOTOS: "ảnh",
       DAYS: "ngày",
       PERCENT: "%",
       MONTHS: "tháng",
@@ -270,6 +271,7 @@ export const ADMIN_MESSAGES = {
     },
     keyLabels: {
       CLOUDINARY_MAX_UPLOAD_MB: "Giới hạn tải lên Cloudinary",
+      CHECK_IN_MAX_PHOTOS: "Giới hạn ảnh check-in",
       EXPIRY_REMINDER_DAYS: "Số ngày nhắc trước hạn thuê",
       ABANDONED_REVIEW_DAYS: "Số ngày rà soát kho bỏ quên",
       RENEWAL_NOTICE_DAYS: "Số ngày chặn gửi gia hạn",

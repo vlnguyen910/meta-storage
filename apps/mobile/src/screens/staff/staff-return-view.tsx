@@ -289,7 +289,7 @@ export function StaffReturnView({
 
           <Card title={M.returnEvidence}>
             <Text className="mb-3 font-body text-[12px] text-muted">
-              {record.evidence.length}/{INSPECTION_PHOTO_MAX_COUNT}
+              {record.evidence.length}/{record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT}
             </Text>
             {selectedPhoto ? (
               <View className="mb-3">
@@ -339,7 +339,11 @@ export function StaffReturnView({
                 <Button
                   secondary
                   label={M.addPhoto}
-                  disabled={flow.busy || record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT}
+                  disabled={
+                    flow.busy ||
+                    record.evidence.length >=
+                      (record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT)
+                  }
                   onPress={() =>
                     flow.photo.mutate(false, {
                       onSuccess: (result) => result && onNotify("success", M.evidenceAddedSuccess),
@@ -350,7 +354,11 @@ export function StaffReturnView({
                 <Button
                   secondary
                   label={M.takePhoto}
-                  disabled={flow.busy || record.evidence.length >= INSPECTION_PHOTO_MAX_COUNT}
+                  disabled={
+                    flow.busy ||
+                    record.evidence.length >=
+                      (record.maxEvidenceCount ?? INSPECTION_PHOTO_MAX_COUNT)
+                  }
                   onPress={() =>
                     flow.photo.mutate(true, {
                       onSuccess: (result) => result && onNotify("success", M.evidenceAddedSuccess),

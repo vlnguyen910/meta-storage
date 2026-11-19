@@ -1424,6 +1424,7 @@ async function seedPolicies(seedNow: Date) {
     "OPENING_HOUR",
     "CLOSING_HOUR",
     "CLOUDINARY_MAX_UPLOAD_MB",
+    "CHECK_IN_MAX_PHOTOS",
   ] as const;
   await db
     .insert(systemSettings)
