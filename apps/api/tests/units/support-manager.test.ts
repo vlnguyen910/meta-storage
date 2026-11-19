@@ -35,8 +35,12 @@ function fixture(active = true) {
   const read = mock(async () => [row]);
   const assignments = new FacilityAssignmentsService(
     {
-      findActiveAssignment: async (facility: string, actorId: string) =>
-        active && facility === facilityId && actorId === "manager" ? {} : undefined,
+      findActiveAssignment: async (facility: string, actorId: string, role?: string) =>
+        active &&
+        facility === facilityId &&
+        (actorId === "manager" || (actorId === "staff" && role === "FACILITY_STAFF"))
+          ? {}
+          : undefined,
     } as unknown as FacilityAssignmentsRepository,
     {} as FacilitiesRepository,
   );
@@ -87,5 +91,15 @@ describe("manager support reads", () => {
       service.facilityList("manager", facilityId, { limit: 1, cursor: "invalid" }),
     ).rejects.toMatchObject({ statusCode: 422 });
     expect(read).not.toHaveBeenCalled();
+  });
+  test("allows assigned facility staff to read facility tickets and details", async () => {
+    const { service, read } = fixture();
+    const staffActor = { id: "staff", role: "FACILITY_STAFF" as const };
+    const page = await service.facilityList(staffActor, facilityId, { limit: 20 });
+    expect(read).toHaveBeenCalledWith(facilityId, { limit: 20 }, undefined);
+    expect(page.items.length).toBe(1);
+
+    await service.facilityDetail(staffActor, facilityId, ticketId);
+    expect(read).toHaveBeenCalledWith(facilityId, { limit: 1 }, undefined, ticketId);
   });
 });
