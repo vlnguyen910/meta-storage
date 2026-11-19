@@ -1,4 +1,4 @@
-import { Building2, History, LayoutDashboard, UsersRound } from "lucide-react";
+import { Building2, History, LayoutDashboard, Sliders, UsersRound } from "lucide-react";
 import { systemAdministratorRoutes } from "@/config/routes";
 import { ADMIN_MESSAGES as M } from "@/features/administration/admin.messages";
 import type { NavigationItem } from "./types";
@@ -11,5 +11,10 @@ export const systemAdministratorNavigation: NavigationItem[] = [
     href: systemAdministratorRoutes.facilityAssignments,
     label: M.titles.assignments,
     icon: Building2,
+  },
+  {
+    href: systemAdministratorRoutes.systemSettings,
+    label: M.titles.systemSettings,
+    icon: Sliders,
   },
 ];
