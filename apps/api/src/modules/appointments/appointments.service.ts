@@ -277,6 +277,7 @@ export class AppointmentsService {
           })
         : undefined;
     const demo = isDevelopmentEnvironment();
+    let unitChanged = false;
     const updated = await this.repository.transaction(async (tx) => {
       // Use the same parent -> appointment lock order as reservation cancellation.
       const reservation = current.reservationId
@@ -369,6 +370,7 @@ export class AppointmentsService {
         reservation.status !== ReservationStatus.CONFIRMED
       )
         throw new ConflictError(m.reservationNotConfirmed);
+      let unitReassigned = false;
       if (input.physicalUnitId) {
         if (
           actor.role !== UserRole.FACILITY_MANAGER ||
@@ -376,7 +378,7 @@ export class AppointmentsService {
           appointment.appointmentType !== Type.CHECK_IN
         )
           throw new ForbiddenError(m.accessDenied);
-        await this.storageUnits.assignReservationUnit(tx, {
+        const unitResult = await this.storageUnits.assignReservationUnit(tx, {
           reservationId: reservation.id,
           unitId: input.physicalUnitId,
           facilityId: reservation.facilityId,
@@ -386,6 +388,8 @@ export class AppointmentsService {
           managerId: actor.id,
           reason: input.assignmentReason,
         });
+        unitChanged = unitResult.changed;
+        unitReassigned = unitResult.reassigned;
       }
       if (status === Status.CANCELLED && reservation)
         await this.storageUnits.closeReservationAssignment(tx, reservation.id, "CANCELLED");
@@ -398,10 +402,12 @@ export class AppointmentsService {
         input.assignedStaffId ||
         (actor.role === UserRole.FACILITY_MANAGER &&
           assignedStaffId &&
-          status === Status.CONFIRMED &&
+          (status === Status.CONFIRMED || unitReassigned) &&
           (input.physicalUnitId || input.status === Status.CONFIRMED))
       ) {
-        await this.tasks.assignAppointment(tx, { ...appointment, assignedStaffId }, actor.id);
+        await this.tasks.assignAppointment(tx, { ...appointment, assignedStaffId }, actor.id, {
+          resetInProgress: unitReassigned,
+        });
       }
       if (status === Status.COMPLETED || status === Status.CANCELLED || status === Status.NO_SHOW)
         await this.tasks.finishAppointment(
@@ -439,13 +445,15 @@ export class AppointmentsService {
       return updated;
     });
     if (supportActivity) supportActivity.changed = updated.status !== current.status;
-    if (
-      input.assignedStaffId &&
-      input.assignedStaffId !== current.assignedStaffId &&
-      this.notifications
-    ) {
+    const notifyStaffId =
+      input.assignedStaffId && input.assignedStaffId !== current.assignedStaffId
+        ? input.assignedStaffId
+        : unitChanged && updated.assignedStaffId
+          ? updated.assignedStaffId
+          : undefined;
+    if (notifyStaffId && this.notifications) {
       try {
-        await this.notifications.assignedAppointment(id, input.assignedStaffId);
+        await this.notifications.assignedAppointment(id, notifyStaffId);
       } catch {
         console.error("Appointment assignment notification failed");
       }

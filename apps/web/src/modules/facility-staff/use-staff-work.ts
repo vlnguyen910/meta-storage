@@ -54,7 +54,10 @@ export function useStaffWork(facilityId: string, date: string, kind: StaffWorkFi
       )
       .map((item): import("./staff-work.types").StaffWorkItem => {
         const assignedTask = (tasks.data ?? []).find(
-          (task) => task.referenceType === "APPOINTMENT" && task.referenceId === item.id,
+          (task) =>
+            task.referenceType === "APPOINTMENT" &&
+            task.referenceId === item.id &&
+            task.status !== "CANCELLED",
         );
         return {
           id: `appointment:${item.id}`,

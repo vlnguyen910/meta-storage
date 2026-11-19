@@ -22,6 +22,7 @@ import {
   facilityTasks,
   getTableColumns,
   inArray,
+  inspections,
   sql,
   storageUnits,
   supportTickets,
@@ -74,6 +75,15 @@ export class FacilityTasksRepository {
 
   createAppointmentTask(tx: TaskTransaction, input: typeof facilityTasks.$inferInsert) {
     return tx.insert(facilityTasks).values(input).returning();
+  }
+
+  async hasTaskInspection(tx: TaskTransaction, taskId: string) {
+    const [row] = await tx
+      .select({ id: inspections.id })
+      .from(inspections)
+      .where(eq(inspections.taskId, taskId))
+      .limit(1);
+    return Boolean(row);
   }
 
   find(tx: TaskTransaction, id: string) {

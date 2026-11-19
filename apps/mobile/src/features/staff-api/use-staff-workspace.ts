@@ -132,7 +132,12 @@ export function useStaffCheckIn(owner: string, appointmentId: string) {
     queryKey: ["mobile-inspection", owner, appointmentId],
     queryFn: () => api.inspections.forAppointment(appointmentId),
   });
-  const record = history.data?.find((item) => item.taskId === task?.id);
+  const record = history.data?.find(
+    (item) =>
+      item.taskId === task?.id &&
+      (!appointment.data?.assignedUnit?.physicalUnitId ||
+        item.storageUnitId === appointment.data.assignedUnit.physicalUnitId),
+  );
   const refresh = async () => {
     await Promise.all([
       appointment.refetch(),
@@ -244,7 +249,12 @@ export function useStaffReturn(owner: string, appointmentId: string) {
     queryFn: () => api.inspections.forAppointment(appointmentId),
     enabled: appointment.data?.appointmentType === "CHECK_OUT",
   });
-  const record = history.data?.find((item) => item.taskId === task?.id);
+  const record = history.data?.find(
+    (item) =>
+      item.taskId === task?.id &&
+      (!appointment.data?.assignedUnit?.physicalUnitId ||
+        item.storageUnitId === appointment.data.assignedUnit.physicalUnitId),
+  );
   const refresh = async () => {
     await Promise.all([
       appointment.refetch(),
