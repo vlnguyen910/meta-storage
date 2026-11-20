@@ -363,6 +363,7 @@ export class AppointmentsService {
         if (
           status === Status.CANCELLED &&
           actor.role === UserRole.STORAGE_CUSTOMER &&
+          !sameDayAllowed &&
           now >= slot.startsAt
         )
           throw new ConflictError(m.cancellationClosed);
