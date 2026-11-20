@@ -1552,6 +1552,66 @@ describe.skipIf(!testUrl)("reservation and appointment workflows with PostgreSQL
     ).toBe(Status.COMPLETED);
   });
 
+  test("customers can cancel a started return only in a same-day check-in slot", async () => {
+    const f = await fixture();
+    const [booking] = await db
+      .insert(bookings)
+      .values({
+        userId: f.id.customer,
+        facilityId: f.id.facility,
+        unitTypeId: f.id.type,
+        requestedMonths: 2,
+        checkInDate: f.date,
+        checkInSlotId: f.id.slot,
+        rentalEndAt: new Date(Date.now() + 60 * 86400000),
+        monthlyRateSnapshot: "100000",
+        rentalFeeAmount: "200000",
+        depositAmount: "100000",
+        totalAmount: "300000",
+        status: "CHECKED_IN",
+        contactPhone: "0901234567",
+      })
+      .returning();
+    if (!booking) throw new Error("Missing booking");
+    const [rental] = await db
+      .insert(rentals)
+      .values({
+        bookingId: booking.id,
+        userId: f.id.customer,
+        storageUnitId: f.id.unit,
+        startAt: new Date(Date.now() - 86400000),
+        endAt: booking.rentalEndAt,
+      })
+      .returning();
+    if (!rental) throw new Error("Missing rental");
+    const returnInput = {
+      appointmentType: Type.CHECK_OUT,
+      rentalId: rental.id,
+      scheduledDate: f.date,
+      slotId: f.id.slot,
+    };
+    const regular = await appointmentService.scheduleAppointment(returnInput, f.id.customer);
+    const customer = { id: f.id.customer, role: UserRole.STORAGE_CUSTOMER };
+    setSystemTime(new Date(`${f.date}T09:15:00+07:00`));
+    await expect(
+      appointmentService.updateAppointment(regular.id, { status: Status.CANCELLED }, customer),
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    await db
+      .update(checkInSlots)
+      .set({ sameDayCheckInEnabled: true })
+      .where(eq(checkInSlots.id, f.id.slot));
+    expect(
+      (
+        await appointmentService.updateAppointment(
+          regular.id,
+          { status: Status.CANCELLED },
+          customer,
+        )
+      ).status,
+    ).toBe(Status.CANCELLED);
+  });
+
   test("no-show sweep uses closing time and releases paid capacity exactly once", async () => {
     const f = await fixture();
     const paid = await scheduled(f);
